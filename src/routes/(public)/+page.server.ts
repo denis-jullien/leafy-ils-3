@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { featuredBooks, searchCatalogue } from '$lib/server/catalogue';
 import { CATEGORY_IDS, TIMEZONE, type CategoryId } from '$lib/config';
-import { EVENTS } from '$lib/content/site';
+import { upcomingEvents } from '$lib/server/events';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -13,26 +13,6 @@ function today(now = new Date()) {
 	);
 	const iso = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(now); // YYYY-MM-DD
 	return { idx: WEEKDAYS.indexOf(weekday), iso };
-}
-
-const dayFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', timeZone: TIMEZONE });
-const monthFmt = new Intl.DateTimeFormat('fr-FR', { month: 'short', timeZone: TIMEZONE });
-const weekdayFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', timeZone: TIMEZONE });
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-function upcomingEvents(todayIso: string, limit = 4) {
-	return EVENTS.filter((e) => e.date >= todayIso)
-		.sort((a, b) => a.date.localeCompare(b.date))
-		.slice(0, limit)
-		.map((e) => {
-			const d = new Date(`${e.date}T12:00:00`);
-			return {
-				...e,
-				day: dayFmt.format(d),
-				month: monthFmt.format(d).replace('.', '').toUpperCase(),
-				weekday: cap(weekdayFmt.format(d))
-			};
-		});
 }
 
 export const load: PageServerLoad = ({ url }) => {
@@ -47,7 +27,7 @@ export const load: PageServerLoad = ({ url }) => {
 		category,
 		searching: q.length > 0,
 		books: q ? searchCatalogue(db, { q, category }) : featuredBooks(db, category),
-		events: upcomingEvents(t.iso),
+		events: upcomingEvents(db, t.iso),
 		todayIdx: t.idx
 	};
 };

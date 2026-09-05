@@ -69,3 +69,12 @@ export const memberSchema = z.object({
 	birthYear: optionalInt,
 	notes: optionalText
 });
+
+export const eventSchema = z.object({
+	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide'),
+	time: optionalText,
+	title: z.string().trim().min(1, 'Le titre est obligatoire'),
+	tag: optionalText,
+	description: optionalText,
+	free: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(true)
+});

@@ -1,22 +1,17 @@
 <script lang="ts">
-	import { CONTACT } from '$lib/content/site';
-
 	interface Props {
 		event: {
 			day: string;
 			month: string;
 			weekday: string;
-			time: string;
+			time: string | null;
 			title: string;
-			tag: string;
-			desc: string;
-			free?: boolean;
+			tag: string | null;
+			description: string | null;
+			free: boolean;
 		};
 	}
 	let { event }: Props = $props();
-	const mailto = $derived(
-		`mailto:${CONTACT.email}?subject=${encodeURIComponent(`Inscription : ${event.title} (${event.weekday} ${event.day} ${event.month})`)}`
-	);
 </script>
 
 <article class="event">
@@ -27,13 +22,12 @@
 	<div class="event-main">
 		<div class="event-top">
 			<h3 class="event-title">{event.title}</h3>
-			<span class="event-tag">{event.tag}</span>
+			{#if event.tag}<span class="event-tag">{event.tag}</span>{/if}
 		</div>
-		<p class="event-desc">{event.desc}</p>
+		{#if event.description}<p class="event-desc">{event.description}</p>{/if}
 		<div class="event-meta">
-			<span>🕑 {event.weekday} · {event.time}</span>
+			<span>🕑 {event.weekday}{event.time ? ` · ${event.time}` : ''}</span>
 			{#if event.free}<span class="event-free">Gratuit</span>{/if}
 		</div>
 	</div>
-	<a class="event-cta" href={mailto}>Je m'inscris</a>
 </article>

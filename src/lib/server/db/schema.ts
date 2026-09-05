@@ -109,9 +109,29 @@ export const loans = sqliteTable(
 	]
 );
 
+/** Public agenda, edited by volunteers from the desk. Past events hide on their own. */
+export const events = sqliteTable(
+	'events',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		/** ISO date, YYYY-MM-DD, in the library's timezone. */
+		date: text('date').notNull(),
+		/** Free text, e.g. "10h30" or "14h – 16h". */
+		time: text('time'),
+		title: text('title').notNull(),
+		/** Audience label shown as a tag: Jeunesse, Adultes, Tout public… */
+		tag: text('tag'),
+		description: text('description'),
+		free: integer('free', { mode: 'boolean' }).notNull().default(true),
+		...timestamps
+	},
+	(t) => [index('events_date_idx').on(t.date)]
+);
+
 export type Family = typeof families.$inferSelect;
 export type NewFamily = typeof families.$inferInsert;
 export type Member = typeof members.$inferSelect;
 export type Book = typeof books.$inferSelect;
 export type NewBook = typeof books.$inferInsert;
 export type Loan = typeof loans.$inferSelect;
+export type Event = typeof events.$inferSelect;

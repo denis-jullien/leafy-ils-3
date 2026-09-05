@@ -1,6 +1,6 @@
 /**
- * Public site content: everything a volunteer might want to change without
- * touching the database. Edit, commit, deploy.
+ * Public site content that rarely changes: name, contact, hours, membership.
+ * Events are edited from the desk and live in the database.
  */
 
 export const SITE = {
@@ -44,53 +44,3 @@ export const MEMBERSHIP = {
 		'Espace jeux et coin lecture enfants'
 	]
 };
-
-export interface SiteEvent {
-	id: number;
-	/** ISO date, e.g. 2026-09-16. Past events are hidden automatically. */
-	date: string;
-	time: string;
-	title: string;
-	tag: string;
-	desc: string;
-	free?: boolean;
-}
-
-export const EVENTS: SiteEvent[] = [
-	{
-		id: 1,
-		date: '2026-09-16',
-		time: '10h30',
-		title: 'Heure du conte',
-		tag: 'Jeunesse',
-		desc: "Histoires et comptines pour les 3–6 ans, suivies d'un goûter.",
-		free: true
-	},
-	{
-		id: 2,
-		date: '2026-09-19',
-		time: '15h00',
-		title: 'Club de lecture',
-		tag: 'Adultes',
-		desc: 'On échange autour du roman du mois : « La Maison de jade ».',
-		free: true
-	},
-	{
-		id: 3,
-		date: '2026-09-30',
-		time: '14h00',
-		title: 'Atelier numérique',
-		tag: 'Seniors',
-		desc: 'Prise en main de la tablette et du catalogue en ligne. Sur inscription.',
-		free: true
-	},
-	{
-		id: 4,
-		date: '2026-10-10',
-		time: '10h00',
-		title: 'Rencontre avec Élise Roca',
-		tag: 'Tout public',
-		desc: "L'autrice des « Carnets de garrigue » présente son travail. Dédicaces.",
-		free: true
-	}
-];

@@ -15,6 +15,13 @@
       "when": 1788610323024,
       "tag": "0001_book_category_featured",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788617632066,
+      "tag": "0002_events",
+      "breakpoints": true
     }
   ]
 }

@@ -10,7 +10,8 @@
 		LayoutDashboard,
 		Shield,
 		LogOut,
-		Globe
+		Globe,
+		CalendarDays
 	} from '@lucide/svelte';
 
 	let { user }: { user: { name: string; role?: string | null } } = $props();
@@ -19,7 +20,8 @@
 		{ href: '/desk', label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
 		{ href: '/circulation', label: 'Prêts & retours', icon: ArrowLeftRight },
 		{ href: '/books', label: 'Livres', icon: BookOpen },
-		{ href: '/families', label: 'Familles', icon: Users }
+		{ href: '/families', label: 'Familles', icon: Users },
+		{ href: '/events', label: 'Événements', icon: CalendarDays }
 	];
 
 	const active = (href: string, exact = false) =>

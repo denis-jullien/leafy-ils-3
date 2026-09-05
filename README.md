@@ -44,8 +44,9 @@ npm run db:studio             # browse the database
 catalogue search with category chips, the volunteers' picks, upcoming events, opening
 hours with today highlighted, address, contact and how to join. It needs no login.
 
-- Text content (hours, contact, membership, events) lives in `src/lib/content/site.ts`.
-  Past events disappear on their own.
+- Hours, contact and membership text live in `src/lib/content/site.ts`.
+- Events are managed from the desk (**Événements**). The next four show on the public
+  site; past ones disappear on their own.
 - Categories and the library name are in `src/lib/config.ts`.
 - Put the emblem at `static/logo.jpg` (square). A teal "LA" disc shows until then.
 - Books flagged **Coup de cœur** on the desk appear first; books added in the last 30 days
