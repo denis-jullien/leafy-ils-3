@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -7,7 +8,7 @@
 	import ScannerPanel from '$lib/components/ScannerPanel.svelte';
 	import { Scanners } from '$lib/scan/use-scanners.svelte';
 	import type { ScanEvent } from '$lib/scan';
-	import type { Resolved } from '$lib/server/circulation';
+	import type { OpenLoan, Resolved } from '$lib/server/circulation';
 	import type { Book } from '$lib/server/db/schema';
 	import type { FamilyHit } from '$lib/server/families';
 	import { fmtDate, isOverdue } from '$lib/format';
@@ -21,6 +22,8 @@
 
 	let family = $state<FamilyState | null>(null);
 	let basket = $state<Book[]>([]);
+	/** Books scanned while on loan: returned only when the volunteer validates. */
+	let returns = $state<{ book: Book; loan: OpenLoan }[]>([]);
 	let log = $state<LogEntry[]>([]);
 	let manual = $state('');
 	let busy = $state(false);
@@ -50,11 +53,6 @@
 		if (r.kind === 'family') family = r;
 	}
 
-	async function returnLoan(loanId: number) {
-		const res = await fetch(`/api/loans/${loanId}/return`, { method: 'POST' });
-		if (!res.ok) throw new Error((await res.json()).error ?? 'Retour impossible');
-	}
-
 	/** Every scan, keypress-entered code or manual entry ends up here. */
 	async function handleCode(code: string) {
 		code = code.trim();
@@ -71,14 +69,17 @@
 			if (r.kind === 'book') {
 				const { book, openLoan } = r;
 				if (openLoan) {
-					await returnLoan(openLoan.id);
-					const late = isOverdue(openLoan.dueAt) ? ' (en retard)' : '';
+					if (returns.some((r) => r.loan.id === openLoan.id)) {
+						say('info', `« ${book.title} » est déjà dans les retours`);
+						return;
+					}
+					returns = [...returns, { book, loan: openLoan }];
+					const late = isOverdue(openLoan.dueAt) ? ', en retard' : '';
 					say(
 						'ok',
-						`Retour de « ${book.title} » (${openLoan.family.name})${late}`,
+						`À rendre : « ${book.title} » (${openLoan.family.name}${late})`,
 						`/books/${book.id}`
 					);
-					if (family && openLoan.familyId === family.family.id) await refreshFamily();
 					return;
 				}
 				if (book.status !== 'active') {
@@ -187,6 +188,40 @@
 		}
 	}
 
+	async function validateReturns() {
+		if (returns.length === 0) return;
+		busy = true;
+		try {
+			const res = await fetch('/api/returns', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ loanIds: returns.map((r) => r.loan.id) })
+			});
+			const body = await res.json();
+			if (!res.ok) throw new Error(body.error ?? 'Retour impossible');
+			say('ok', `${returns.length} livre(s) rendu(s)`);
+			const familyId = family?.family.id;
+			const touchesFamily =
+				familyId !== undefined && returns.some((r) => r.loan.familyId === familyId);
+			returns = [];
+			if (touchesFamily) await refreshFamily();
+		} catch (err) {
+			say('err', (err as Error).message);
+		} finally {
+			busy = false;
+		}
+	}
+
+	// Don't lose a half-finished pile of books to a stray click on the nav.
+	const pending = $derived(basket.length + returns.length > 0);
+	beforeNavigate((nav) => {
+		if (pending && !confirm('Des livres attendent encore validation. Quitter quand même ?'))
+			nav.cancel();
+	});
+	function onBeforeUnload(e: BeforeUnloadEvent) {
+		if (pending) e.preventDefault();
+	}
+
 	function finish() {
 		family = null;
 		basket = [];
@@ -222,12 +257,14 @@
 	});
 </script>
 
+<svelte:window onbeforeunload={onBeforeUnload} />
+
 <div class="space-y-4">
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h1 class="text-2xl font-semibold">Prêts &amp; retours</h1>
 		<p class="text-sm text-muted-foreground">
-			Tapez le nom de la famille, scannez les livres, dans n'importe quel ordre. Scanner un livre en
-			prêt le fait revenir.
+			Tapez le nom de la famille et scannez les livres à prêter. Les livres rapportés vont dans la
+			liste des retours. Rien n'est enregistré avant d'avoir validé.
 		</p>
 	</div>
 
@@ -278,8 +315,8 @@
 		{/if}
 	</div>
 
-	<div class="grid gap-4 lg:grid-cols-3">
-		<Card.Root class="lg:col-span-1">
+	<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+		<Card.Root>
 			<Card.Header>
 				<Card.Title>Famille</Card.Title>
 			</Card.Header>
@@ -314,7 +351,7 @@
 			</Card.Content>
 		</Card.Root>
 
-		<Card.Root class="lg:col-span-1">
+		<Card.Root>
 			<Card.Header>
 				<Card.Title>À prêter ({basket.length})</Card.Title>
 			</Card.Header>
@@ -349,7 +386,46 @@
 			</Card.Content>
 		</Card.Root>
 
-		<Card.Root class="lg:col-span-1">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>À rendre ({returns.length})</Card.Title>
+			</Card.Header>
+			<Card.Content class="space-y-3">
+				{#if returns.length === 0}
+					<p class="text-sm text-muted-foreground">Scannez les livres rapportés.</p>
+				{:else}
+					<ul class="space-y-1 text-sm">
+						{#each returns as r (r.loan.id)}
+							<li class="flex items-center justify-between gap-2">
+								<span>
+									{r.book.title}
+									<span class="text-muted-foreground">· {r.loan.family.name}</span>
+									{#if isOverdue(r.loan.dueAt)}<span class="text-destructive">
+											· en retard</span
+										>{/if}
+								</span>
+								<button
+									class="text-muted-foreground hover:text-foreground"
+									onclick={() => (returns = returns.filter((x) => x.loan.id !== r.loan.id))}
+									title="Retirer">×</button
+								>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				<Button
+					class="w-full"
+					size="lg"
+					variant="secondary"
+					disabled={returns.length === 0 || busy}
+					onclick={validateReturns}
+				>
+					Valider {returns.length ? `${returns.length} retour(s)` : 'les retours'}
+				</Button>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
 			<Card.Header>
 				<Card.Title>Activité</Card.Title>
 			</Card.Header>

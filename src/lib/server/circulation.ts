@@ -177,6 +177,36 @@ export function returnBook(db: Db, bookId: number, userId?: string, now = new Da
 	return { ...open, returnedAt: now, returnedBy: userId ?? null };
 }
 
+/** Close several loans at once, all or nothing. Used by the desk's returns list. */
+export function returnLoans(
+	db: Db,
+	loanIds: number[],
+	userId?: string,
+	now = new Date()
+): OpenLoan[] {
+	return db.transaction((tx) => {
+		const done: OpenLoan[] = [];
+		for (const loanId of new Set(loanIds)) {
+			const row = tx
+				.select({ loan: loans, family: families, title: books.title })
+				.from(loans)
+				.innerJoin(families, eq(families.id, loans.familyId))
+				.innerJoin(books, eq(books.id, loans.bookId))
+				.where(eq(loans.id, loanId))
+				.get();
+			if (!row) throw new CirculationError('NOT_ON_LOAN', `Prêt ${loanId} introuvable`);
+			if (row.loan.returnedAt)
+				throw new CirculationError('NOT_ON_LOAN', `« ${row.title} » a déjà été rendu`);
+			tx.update(loans)
+				.set({ returnedAt: now, returnedBy: userId })
+				.where(eq(loans.id, loanId))
+				.run();
+			done.push({ ...row.loan, returnedAt: now, returnedBy: userId ?? null, family: row.family });
+		}
+		return done;
+	});
+}
+
 export function renewLoan(db: Db, loanId: number, now = new Date()): Loan {
 	const loan = db.select().from(loans).where(eq(loans.id, loanId)).get();
 	if (!loan || loan.returnedAt) throw new CirculationError('NOT_ON_LOAN', 'Ce prêt est terminé');

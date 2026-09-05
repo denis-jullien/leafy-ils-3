@@ -60,8 +60,8 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 ## How the desk works
 
 - **Circulation** page: one input, always ready. Type a few letters of the family name and
-  pick it, scan the books in any order, press **Prêter**. Scanning a book that is out
-  returns it, whoever brings it.
+  pick it, scan the books in any order, press **Prêter**. Books scanned while on loan go
+  to a returns list, applied together with **Valider**. Nothing is recorded before that.
 - **Barcode scanners** work out of the box: a USB scanner types the code and presses
   Enter. The page also listens for that burst of keystrokes when no field is focused.
 - **RFID readers**: three options, all behind the same `ScanSource` interface in

@@ -11,7 +11,9 @@ import {
 	renewLoan,
 	resolveCode,
 	returnBook,
-	overdueLoans
+	returnLoans,
+	overdueLoans,
+	openLoansForFamily
 } from './circulation';
 
 let db: Db;
@@ -84,6 +86,19 @@ describe('checkout / return', () => {
 		const ok = addFamily('Here');
 		db.update(books).set({ status: 'lost' }).run();
 		expect(() => checkout(db, { familyId: ok, bookIds: [book] })).toThrowError(/perdu/);
+	});
+
+	it('returns several loans at once, or none', () => {
+		const fam = addFamily('Groupe');
+		const a = addBook('A');
+		const b = addBook('B');
+		const [la, lb] = checkout(db, { familyId: fam, bookIds: [a, b] });
+		expect(() => returnLoans(db, [la.id, 9999])).toThrowError(/introuvable/);
+		expect(openLoansForFamily(db, fam)).toHaveLength(2); // nothing was returned
+		const done = returnLoans(db, [la.id, lb.id]);
+		expect(done.map((l) => l.family.name)).toEqual(['Groupe', 'Groupe']);
+		expect(openLoansForFamily(db, fam)).toHaveLength(0);
+		expect(() => returnLoans(db, [la.id])).toThrowError(/déjà été rendu/);
 	});
 
 	it('renews once and reports overdue loans', () => {
