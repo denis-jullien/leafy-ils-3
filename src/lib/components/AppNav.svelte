@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
-	import { Button } from '$lib/components/ui/button';
+	import Logo from '$lib/components/site/Logo.svelte';
 	import { LIBRARY_NAME } from '$lib/config';
 	import {
 		BookOpen,
@@ -28,36 +28,40 @@
 		exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
 </script>
 
-<header class="border-b bg-card">
-	<div class="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2">
-		<a href="/desk" class="mr-4 text-lg font-semibold">{LIBRARY_NAME}</a>
-		<nav class="flex flex-1 flex-wrap gap-1">
+<header class="desk-header">
+	<div class="desk-header-inner mx-auto max-w-6xl px-4">
+		<a href="/desk" class="desk-brand">
+			<Logo size={40} />
+			<span class="desk-brand-text">
+				<span class="desk-brand-name">{LIBRARY_NAME}</span>
+				<span class="desk-tag">Espace bénévoles</span>
+			</span>
+		</a>
+		<nav class="desk-nav" aria-label="Menu du bureau">
 			{#each links as l (l.href)}
-				<Button href={l.href} variant={active(l.href, l.exact) ? 'secondary' : 'ghost'} size="sm">
+				<a href={l.href} class:is-active={active(l.href, l.exact)}>
 					<l.icon class="size-4" />
 					{l.label}
-				</Button>
+				</a>
 			{/each}
 			{#if user.role === 'admin'}
-				<Button
-					href="/admin/volunteers"
-					variant={active('/admin') ? 'secondary' : 'ghost'}
-					size="sm"
-				>
+				<a href="/admin/volunteers" class:is-active={active('/admin')}>
 					<Shield class="size-4" />
 					Bénévoles
-				</Button>
+				</a>
 			{/if}
 		</nav>
-		<Button href="/" variant="ghost" size="sm" title="Voir le site public">
-			<Globe class="size-4" />
-			<span class="hidden md:inline">Site public</span>
-		</Button>
-		<span class="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
-		<form method="post" action="/logout" use:enhance>
-			<Button type="submit" variant="ghost" size="sm" title="Se déconnecter">
-				<LogOut class="size-4" />
-			</Button>
-		</form>
+		<div class="desk-user">
+			<a href="/" title="Voir le site public">
+				<Globe class="size-4" />
+				<span class="hidden md:inline">Site public</span>
+			</a>
+			<span class="name">{user.name}</span>
+			<form method="post" action="/logout" use:enhance>
+				<button type="submit" title="Se déconnecter">
+					<LogOut class="size-4" />
+				</button>
+			</form>
+		</div>
 	</div>
 </header>

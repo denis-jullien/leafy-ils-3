@@ -1,10 +1,11 @@
 <script lang="ts">
+	import './desk.css';
 	import AppNav from '$lib/components/AppNav.svelte';
 
 	let { data, children } = $props();
 </script>
 
-<div class="min-h-screen bg-background text-foreground">
+<div class="desk">
 	{#if data.user}
 		<AppNav user={data.user} />
 	{/if}

@@ -303,7 +303,7 @@
 			oninput={onManualInput}
 			onkeydown={onManualKeydown}
 			placeholder="Nom de la famille, ou scannez un livre ici"
-			class="h-12 text-lg"
+			class="desk-scan"
 			autofocus
 			autocomplete="off"
 			role="combobox"
@@ -443,7 +443,7 @@
 					</ul>
 				{/if}
 				<Button
-					class="w-full"
+					class="desk-accent w-full"
 					size="lg"
 					variant="secondary"
 					disabled={returns.length === 0 || busy}

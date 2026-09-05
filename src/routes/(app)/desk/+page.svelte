@@ -21,7 +21,7 @@
 	<div class="grid gap-4 sm:grid-cols-3">
 		{#each tiles as { label, n, href } (label)}
 			<a {href}>
-				<Card.Root>
+				<Card.Root class="desk-tile">
 					<Card.Header>
 						<Card.Description>{label}</Card.Description>
 						<Card.Title class="text-3xl">{n}</Card.Title>

@@ -4,18 +4,20 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
-	import { LIBRARY_NAME } from '$lib/config';
+	import DeskBrand from '$lib/components/DeskBrand.svelte';
+	import '../(app)/desk.css';
 
 	let { data } = $props();
 	// svelte-ignore state_referenced_locally
 	const { form, errors, message, enhance, submitting } = superForm(data.form);
 </script>
 
-<div class="min-h-screen bg-background px-4 text-foreground">
+<div class="desk px-4">
 	<div class="mx-auto max-w-sm pt-16">
+		<DeskBrand />
 		<Card.Root>
 			<Card.Header>
-				<Card.Title>Bienvenue sur {LIBRARY_NAME}</Card.Title>
+				<Card.Title>Bienvenue</Card.Title>
 				<Card.Description>
 					Aucun compte n'existe encore. Créez le compte administrateur. Les autres bénévoles seront
 					ajoutés ensuite depuis la page Bénévoles.

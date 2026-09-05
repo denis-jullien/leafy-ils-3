@@ -4,19 +4,21 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
-	import { LIBRARY_NAME } from '$lib/config';
+	import DeskBrand from '$lib/components/DeskBrand.svelte';
+	import '../(app)/desk.css';
 
 	let { data } = $props();
 	// svelte-ignore state_referenced_locally
 	const { form, errors, message, enhance, submitting } = superForm(data.form);
 </script>
 
-<div class="min-h-screen bg-background px-4 text-foreground">
+<div class="desk px-4">
 	<div class="mx-auto max-w-sm pt-16">
+		<DeskBrand />
 		<Card.Root>
 			<Card.Header>
-				<Card.Title>{LIBRARY_NAME}</Card.Title>
-				<Card.Description>Connexion des bénévoles</Card.Description>
+				<Card.Title>Connexion</Card.Title>
+				<Card.Description>Entrez votre email et votre mot de passe.</Card.Description>
 			</Card.Header>
 			<Card.Content>
 				<form method="post" use:enhance class="space-y-4" data-no-wedge>
