@@ -1,7 +1,6 @@
 <script lang="ts">
 	import BookCard from '$lib/components/site/BookCard.svelte';
 	import EventCard from '$lib/components/site/EventCard.svelte';
-	import { CATEGORIES } from '$lib/config';
 	import { CONTACT, HOURS, MEMBERSHIP, SITE } from '$lib/content/site';
 
 	let { data } = $props();
@@ -72,18 +71,6 @@
 			</div>
 			<p class="section-note">{n} ouvrage{plural} affiché{plural}</p>
 		</div>
-
-		<nav class="filters" aria-label="Catégories">
-			<a class="chip" class:is-active={!data.category} href={href({ cat: null })}>Tout</a>
-			{#each CATEGORIES as c (c.id)}
-				<a class="chip" class:is-active={data.category === c.id} href={href({ cat: c.id })}
-					>{c.label}</a
-				>
-			{/each}
-			{#if data.searching}
-				<a class="chip chip-clear" href={href({ q: '' })}>« {data.q} » ✕</a>
-			{/if}
-		</nav>
 
 		{#if n === 0}
 			<div class="empty">
