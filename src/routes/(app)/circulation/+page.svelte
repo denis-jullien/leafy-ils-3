@@ -80,6 +80,7 @@
 						`À rendre : « ${book.title} » (${openLoan.family.name}${late})`,
 						`/books/${book.id}`
 					);
+					await selectFamilyForReturn(openLoan);
 					return;
 				}
 				if (book.status !== 'active') {
@@ -188,6 +189,24 @@
 		}
 	}
 
+	/**
+	 * A family bringing books back usually borrows next. Select it, unless
+	 * another family is mid-transaction with books already in the basket.
+	 */
+	async function selectFamilyForReturn(loan: OpenLoan) {
+		if (family?.family.id === loan.familyId) return;
+		if (family && basket.length > 0) {
+			say('info', `Ce livre est à ${loan.family.name} ; ${family.family.name} reste sélectionnée`);
+			return;
+		}
+		if (!loan.family.barcode) return;
+		const r = await resolve(loan.family.barcode);
+		if (r.kind === 'family') {
+			family = r;
+			say('info', `Famille sélectionnée : ${r.family.name}`);
+		}
+	}
+
 	async function validateReturns() {
 		if (returns.length === 0) return;
 		busy = true;
@@ -263,8 +282,8 @@
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h1 class="text-2xl font-semibold">Prêts &amp; retours</h1>
 		<p class="text-sm text-muted-foreground">
-			Tapez le nom de la famille et scannez les livres à prêter. Les livres rapportés vont dans la
-			liste des retours. Rien n'est enregistré avant d'avoir validé.
+			Scannez les livres rapportés : ils vont dans la liste des retours et leur famille est
+			sélectionnée. Scannez ensuite les livres à prêter. Rien n'est enregistré avant d'avoir validé.
 		</p>
 	</div>
 
