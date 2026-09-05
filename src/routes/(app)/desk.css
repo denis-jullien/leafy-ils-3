@@ -71,6 +71,25 @@
 	select,
 	textarea {
 		border-radius: 12px;
+		background: var(--card);
+	}
+
+	/* Tables sit in a white panel when they are not already inside a card */
+	[data-slot='table-container'] {
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-radius: calc(var(--radius) + 4px);
+		padding: 0.25rem 1rem;
+	}
+	[data-slot='card'] [data-slot='table-container'],
+	details [data-slot='table-container'] {
+		background: transparent;
+		border: 0;
+		border-radius: 0;
+		padding: 0;
+	}
+	[data-slot='table-row']:hover {
+		background: color-mix(in srgb, var(--surface-alt) 60%, transparent);
 	}
 	input[type='checkbox'] {
 		accent-color: var(--c-primary);
