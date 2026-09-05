@@ -16,12 +16,15 @@
 		sf,
 		action,
 		submitLabel = 'Enregistrer',
-		showLookup = true
+		showLookup = true,
+		scanFirst = false
 	}: {
 		sf: SuperForm<Data>;
 		action?: string;
 		submitLabel?: string;
 		showLookup?: boolean;
+		/** New-book mode: a big, focused ISBN field so the scanner can go straight in. */
+		scanFirst?: boolean;
 	} = $props();
 
 	// svelte-ignore state_referenced_locally
@@ -79,17 +82,27 @@
 <form method="post" {action} use:enhance class="grid gap-4 md:grid-cols-2" data-no-wedge>
 	<div class="space-y-1 md:col-span-2">
 		<Label for="isbn">ISBN</Label>
-		<div class="flex gap-2">
+		<div class="flex flex-wrap gap-2">
 			<Input
 				id="isbn"
 				name="isbn"
 				bind:value={$form.isbn}
-				placeholder="Scannez ou tapez l'ISBN"
+				placeholder={scanFirst
+					? "Scannez le code-barres du livre, ou tapez l'ISBN"
+					: "Scannez ou tapez l'ISBN"}
 				onkeydown={onIsbnKeydown}
-				class="max-w-xs font-mono"
+				autofocus={scanFirst}
+				class={scanFirst ? 'desk-scan min-w-0 flex-1 font-mono' : 'max-w-xs font-mono'}
 			/>
 			{#if showLookup}
-				<Button type="button" variant="secondary" onclick={lookup} disabled={looking}>
+				<Button
+					type="button"
+					variant={scanFirst ? 'default' : 'secondary'}
+					size={scanFirst ? 'lg' : 'default'}
+					class={scanFirst ? 'h-14 px-6' : ''}
+					onclick={lookup}
+					disabled={looking}
+				>
 					{looking ? 'Recherche…' : 'Chercher la notice'}
 				</Button>
 			{/if}
