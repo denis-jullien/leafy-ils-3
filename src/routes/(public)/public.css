@@ -924,3 +924,112 @@ html {
 		}
 	}
 }
+
+/* ——— Book detail page ——— */
+.arb {
+	.back-link {
+		display: inline-block;
+		margin-bottom: 1.4rem;
+		font-weight: 800;
+		color: var(--c-primary);
+		text-decoration: none;
+	}
+	.back-link:hover {
+		text-decoration: underline;
+	}
+	.detail {
+		display: grid;
+		grid-template-columns: minmax(200px, 280px) 1fr;
+		gap: 2.4rem 3rem;
+		align-items: start;
+	}
+	.detail-cover .cover {
+		transform: none;
+	}
+	.detail-cover:hover .cover {
+		transform: none;
+	}
+	.detail-authors {
+		margin: 0.4rem 0 1rem;
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: var(--muted);
+	}
+	.detail-authors a {
+		text-decoration: none;
+		color: var(--c-primary);
+	}
+	.detail-authors a:hover {
+		text-decoration: underline;
+	}
+	.detail-stock {
+		margin: 0 0 1.4rem;
+	}
+	.detail-stock .stock {
+		font-size: 0.95rem;
+	}
+	.detail-desc {
+		max-width: 62ch;
+		line-height: 1.6;
+		color: var(--ink);
+	}
+	.detail-desc p {
+		margin: 0 0 0.8rem;
+	}
+	.facts {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		gap: 0.8rem 1.4rem;
+		margin: 1.6rem 0;
+		padding: 1.1rem 1.3rem;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: calc(var(--radius) + 4px);
+	}
+	.facts dt {
+		font-size: 0.72rem;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+	.facts dd {
+		margin: 0.1rem 0 0;
+		font-weight: 700;
+		color: var(--ink);
+	}
+	.detail-hint {
+		color: var(--muted);
+		line-height: 1.5;
+		max-width: 62ch;
+	}
+	.detail-hint a {
+		color: var(--c-primary);
+		font-weight: 800;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.detail-hint a:hover {
+		text-decoration: underline;
+	}
+	.book-cover-wrap {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+	}
+	.book-title a {
+		text-decoration: none;
+		color: inherit;
+	}
+	.book-title a:hover {
+		color: var(--c-primary);
+	}
+	@media (max-width: 720px) {
+		.detail {
+			grid-template-columns: 1fr;
+		}
+		.detail-cover {
+			max-width: 220px;
+		}
+	}
+}

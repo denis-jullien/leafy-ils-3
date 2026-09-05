@@ -17,7 +17,7 @@
 </script>
 
 <article class="book" class:is-out={!book.available}>
-	<div class="book-cover-wrap">
+	<a class="book-cover-wrap" href="/livre/{book.id}" aria-label={book.title}>
 		{#if book.coverUrl}
 			<div class="cover cover-img">
 				<img src={book.coverUrl} alt="" loading="lazy" />
@@ -30,9 +30,9 @@
 			</div>
 		{/if}
 		{#if flag}<span class="book-flag">{flag}</span>{/if}
-	</div>
+	</a>
 	<div class="book-body">
-		<h3 class="book-title">{book.title}</h3>
+		<h3 class="book-title"><a href="/livre/{book.id}">{book.title}</a></h3>
 		<p class="book-author">{author}</p>
 		<div class="book-foot">
 			<span class="stock" class:out={!book.available}>

@@ -18,6 +18,17 @@ export interface PublicBook {
 	isNew: boolean;
 }
 
+/** The public detail page shows a little more, still nothing about who has it. */
+export interface PublicBookDetail extends PublicBook {
+	description: string | null;
+	pageCount: number | null;
+	language: string | null;
+	shelf: string | null;
+	/** When the book is out: the date it is expected back. */
+	dueAt: Date | null;
+	isbn13: string | null;
+}
+
 const NEW_FOR_DAYS = 30;
 
 const publicColumns = {
@@ -85,6 +96,25 @@ export function searchCatalogue(
 		.limit(limit)
 		.all()
 		.map(toPublic);
+}
+
+export function getPublicBook(db: Db, id: number): PublicBookDetail | null {
+	const row = db
+		.select({
+			...publicColumns,
+			description: books.description,
+			pageCount: books.pageCount,
+			language: books.language,
+			shelf: books.shelf,
+			isbn13: books.isbn13
+		})
+		.from(books)
+		.leftJoin(loans, onLoanJoin)
+		.where(and(eq(books.id, id), eq(books.status, 'active')))
+		.get();
+	if (!row) return null;
+	const { description, pageCount, language, shelf, isbn13, ...rest } = row;
+	return { ...toPublic(rest), description, pageCount, language, shelf, isbn13, dueAt: row.dueAt };
 }
 
 /** The welcome rail: volunteers' picks first, then the newest arrivals. */

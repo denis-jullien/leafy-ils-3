@@ -50,8 +50,10 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 - Put the emblem at `static/logo.jpg` (square). A teal "LA" disc shows until then.
 - Books flagged **Coup de cœur** on the desk appear first; books added in the last 30 days
   get a **Nouveau** badge. The search box also accepts an ISBN.
-- The public site only ever exposes title, authors, publisher, year, cover, category and
-  availability (`src/lib/server/catalogue.ts`).
+- Every card links to a public book page, `/livre/<id>`, with the summary, details, the
+  expected return date when the book is out, and other titles by the same author.
+- The public site only ever exposes title, authors, publisher, year, cover, category,
+  description and availability (`src/lib/server/catalogue.ts`).
 
 ## How the desk works
 
@@ -100,7 +102,8 @@ src/lib/server/db/         schema, client, migrations runner
 src/lib/server/            auth, circulation rules, books/families persistence, ISBN metadata
 src/lib/scan/              ScanSource abstraction: keyboard wedge, Web Serial, bridge
 src/lib/components/        forms, barcode, scanner panel, nav
-src/routes/(app)/          dashboard, circulation, books, families, admin
+src/routes/(public)/       welcome page and public book pages
+src/routes/(app)/          desk: dashboard, circulation, books, families, admin
 src/routes/api/            JSON endpoints used by the circulation page
 tools/reader-bridge/       local relay for TCP/IP and serial readers
 drizzle/                   SQL migrations

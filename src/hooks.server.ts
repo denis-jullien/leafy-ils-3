@@ -14,7 +14,14 @@ export const init: ServerInit = async () => {
 };
 
 /** Paths reachable without a session. Everything else needs a logged-in volunteer. */
-const PUBLIC = [/^\/$/, /^\/login$/, /^\/setup$/, /^\/api\/auth(\/|$)/, /^\/health$/];
+const PUBLIC = [
+	/^\/$/,
+	/^\/livre\/[^/]+$/,
+	/^\/login$/,
+	/^\/setup$/,
+	/^\/api\/auth(\/|$)/,
+	/^\/health$/
+];
 
 let hasUsers = false; // once true, stays true; saves a query per request
 async function anyUserExists() {
