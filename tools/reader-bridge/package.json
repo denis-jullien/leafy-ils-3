@@ -1,0 +1,17 @@
+{
+	"name": "leafy-reader-bridge",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Forwards RFID/barcode reads from a serial or TCP reader to the browser over a local WebSocket.",
+	"bin": {
+		"leafy-reader-bridge": "./index.js"
+	},
+	"scripts": {
+		"start": "node index.js"
+	},
+	"dependencies": {
+		"serialport": "^13.0.0",
+		"ws": "^8.18.0"
+	}
+}

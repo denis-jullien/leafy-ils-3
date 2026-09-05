@@ -1,0 +1,10 @@
+# Continuous SQLite replication. Point LITESTREAM_REPLICA_URL at an S3-compatible
+# bucket, e.g. Cloudflare R2:  s3://my-bucket/library   (plus LITESTREAM_ACCESS_KEY_ID,
+# LITESTREAM_SECRET_ACCESS_KEY and, for R2, endpoint https://<account>.r2.cloudflarestorage.com)
+dbs:
+  - path: ${DATABASE_URL}
+    replicas:
+      - url: ${LITESTREAM_REPLICA_URL}
+        endpoint: ${LITESTREAM_ENDPOINT}
+        sync-interval: 10s
+        retention: 720h
