@@ -36,6 +36,7 @@ npm run lint                  # prettier + eslint
 npm run db:generate           # new migration after editing src/lib/server/db/schema.ts
 npm run auth:schema           # regenerate Better Auth tables after changing auth.ts
 npm run db:studio             # browse the database
+npm run db:seed:events        # four sample events for the public agenda
 ```
 
 ## Public site
@@ -46,7 +47,7 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 
 - Hours, contact and membership text live in `src/lib/content/site.ts`.
 - Events are managed from the desk (**Événements**). The next four show on the public
-  site; past ones disappear on their own.
+  site; past ones disappear on their own. `npm run db:seed:events` adds four samples.
 - Categories and the library name are in `src/lib/config.ts`.
 - Put the emblem at `static/logo.jpg` (square). A teal "LA" disc shows until then.
 - Books flagged **Coup de cœur** on the desk appear first; books added in the last 30 days
