@@ -78,6 +78,18 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 
 Loan policy lives in `src/lib/config.ts` (21 days, 10 books per family, one renewal).
 
+## ISBN lookup and covers
+
+`src/lib/server/metadata.ts` asks the providers in `ISBN_PROVIDERS` order and merges their
+answers, the first one winning per field: BnF (UNIMARC through SRU, with the summary and
+a cover keyed by the record's ARK), Sudoc (UNIMARC, links to the BnF record), Google Books
+and Open Library. Cover candidates are fetched and checked: not an image, smaller than
+100 px, or a known placeholder means rejected. `GOOGLE_CSE_KEY` and `GOOGLE_CSE_ID` add
+Google image search as a last resort.
+
+On the desk, **Chercher la notice** fills the empty fields of a book form, and the books
+list has **Chercher les couvertures manquantes**, which processes ten books per click.
+
 ## Deploy to Fly.io
 
 ```sh

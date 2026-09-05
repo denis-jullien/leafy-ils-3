@@ -5,7 +5,8 @@ import {
 	isValidIsbn13,
 	isbn10To13,
 	parseIsbn,
-	looksLikeIsbn13
+	looksLikeIsbn13,
+	languageFromIsbn
 } from './isbn';
 
 describe('isbn', () => {
@@ -42,5 +43,13 @@ describe('isbn', () => {
 	it('recognises Bookland EANs', () => {
 		expect(looksLikeIsbn13('9782070368228')).toBe(true);
 		expect(looksLikeIsbn13('3000000000000')).toBe(false);
+	});
+
+	it('guesses the language from the registration group', () => {
+		expect(languageFromIsbn('9782070612758')).toBe('fr');
+		expect(languageFromIsbn('9791040122043')).toBe('fr');
+		expect(languageFromIsbn('9780441172719')).toBe('en');
+		expect(languageFromIsbn('9788804668237')).toBe('it');
+		expect(languageFromIsbn('9782070612759')).toBeUndefined(); // bad check digit
 	});
 });

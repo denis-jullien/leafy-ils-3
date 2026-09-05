@@ -7,14 +7,37 @@
 	import { formatIsbn13 } from '$lib/isbn';
 	import { BOOK_STATUS } from '$lib/labels';
 
-	let { data } = $props();
+	import { enhance } from '$app/forms';
+
+	let { data, form } = $props();
+	let filling = $state(false);
 </script>
 
 <div class="space-y-4">
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h1 class="text-2xl font-semibold">Livres</h1>
-		<Button href="/books/new">Ajouter un livre</Button>
+		<div class="flex flex-wrap items-center gap-2">
+			{#if data.missingCovers > 0}
+				<form
+					method="post"
+					action="?/fillCovers"
+					use:enhance={() => {
+						filling = true;
+						return async ({ update }) => {
+							filling = false;
+							await update();
+						};
+					}}
+				>
+					<Button type="submit" variant="outline" disabled={filling}>
+						{filling ? 'Recherche…' : `Chercher les couvertures manquantes (${data.missingCovers})`}
+					</Button>
+				</form>
+			{/if}
+			<Button href="/books/new">Ajouter un livre</Button>
+		</div>
 	</div>
+	{#if form?.covers}<p class="text-sm text-muted-foreground">{form.covers}</p>{/if}
 
 	<form method="get" class="flex gap-2" data-no-wedge>
 		<Input

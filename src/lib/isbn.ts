@@ -63,3 +63,66 @@ export function formatIsbn13(isbn: string): string {
 	if (!isValidIsbn13(isbn)) return isbn;
 	return `${isbn.slice(0, 3)}-${isbn.slice(3, 4)}-${isbn.slice(4, 9)}-${isbn.slice(9, 12)}-${isbn.slice(12)}`;
 }
+
+/**
+ * Language guessed from the ISBN registration group. Only the groups a French
+ * village library is likely to meet; anything else returns undefined.
+ */
+export function languageFromIsbn(isbn13: string): string | undefined {
+	if (!isValidIsbn13(isbn13)) return undefined;
+	const body = isbn13.slice(3);
+	const groups: [string, string][] = [
+		['0', 'en'],
+		['1', 'en'],
+		['2', 'fr'],
+		['3', 'de'],
+		['4', 'ja'],
+		['5', 'ru'],
+		['7', 'zh'],
+		['80', 'cs'],
+		['81', 'hi'],
+		['82', 'no'],
+		['83', 'pl'],
+		['84', 'es'],
+		['85', 'pt'],
+		['86', 'sr'],
+		['87', 'da'],
+		['88', 'it'],
+		['89', 'ko'],
+		['90', 'nl'],
+		['91', 'sv'],
+		['92', 'mul'],
+		['93', 'hi'],
+		['94', 'nl'],
+		['950', 'es'],
+		['951', 'fi'],
+		['952', 'fi'],
+		['953', 'hr'],
+		['956', 'es'],
+		['958', 'es'],
+		['960', 'el'],
+		['962', 'zh'],
+		['963', 'hu'],
+		['965', 'he'],
+		['966', 'uk'],
+		['970', 'es'],
+		['972', 'pt'],
+		['973', 'ro'],
+		['975', 'tr'],
+		['978', 'en'],
+		['979', 'id'],
+		['980', 'es'],
+		['987', 'es'],
+		['9910', 'fr'],
+		['9911', 'fr'],
+		['9912', 'fr']
+	];
+	if (isbn13.startsWith('979')) {
+		// 979-10/11/12 are France; 979-8 is the US.
+		if (body.startsWith('10') || body.startsWith('11') || body.startsWith('12')) return 'fr';
+		if (body.startsWith('8')) return 'en';
+		return undefined;
+	}
+	const hit = groups.find(([g]) => body.startsWith(g));
+	return hit?.[1];
+}

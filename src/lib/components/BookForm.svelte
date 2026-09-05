@@ -56,7 +56,10 @@
 			$form.pageCount ||= m.pageCount ?? null;
 			$form.description ||= m.description ?? '';
 			$form.coverUrl ||= m.coverUrl ?? '';
-			lookupNote = `Notice trouvée (${m.source}).`;
+			const cover = m.coverUrl ? `, couverture ${m.coverSource}` : ', pas de couverture trouvée';
+			lookupNote = m.sources.length
+				? `Notice : ${m.sources.join(' + ')}${cover}.`
+				: `Pas de notice${cover}.`;
 		} catch (e) {
 			lookupNote = `Recherche impossible : ${(e as Error).message}`;
 		} finally {
@@ -175,7 +178,12 @@
 	</div>
 	<div class="space-y-1 md:col-span-2">
 		<Label for="coverUrl">URL de la couverture</Label>
-		<Input id="coverUrl" name="coverUrl" bind:value={$form.coverUrl} />
+		<div class="flex items-start gap-3">
+			{#if $form.coverUrl}
+				<img src={$form.coverUrl} alt="" class="h-28 w-20 flex-none rounded border object-cover" />
+			{/if}
+			<Input id="coverUrl" name="coverUrl" bind:value={$form.coverUrl} />
+		</div>
 	</div>
 	<div class="space-y-1 md:col-span-2">
 		<Label for="description">Résumé</Label>

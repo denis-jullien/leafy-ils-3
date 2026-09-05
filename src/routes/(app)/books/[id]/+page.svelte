@@ -34,7 +34,7 @@
 			>
 		</div>
 		{#if $message === 'Enregistré'}<p class="text-sm text-green-700">Enregistré.</p>{/if}
-		<BookForm {sf} action="?/save" showLookup={false} />
+		<BookForm {sf} action="?/save" />
 	</div>
 
 	<div class="space-y-4">

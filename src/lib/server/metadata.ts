@@ -1,6 +1,14 @@
 import { env } from '$env/dynamic/private';
+import { languageFromIsbn } from '$lib/isbn';
+import { imageSize } from './image-size';
+import { parseUnimarc, unimarcToBook } from './unimarc';
 
-/** What an ISBN lookup can tell us. Every field is best-effort. */
+/**
+ * ISBN → bibliographic record + cover. Providers are queried in ISBN_PROVIDERS
+ * order and their answers merged: the first provider fills what it knows, the
+ * next ones fill the gaps. Covers are collected as candidates and verified by
+ * fetching the image, so a placeholder never ends up in the catalogue.
+ */
 export interface BookMetadata {
 	isbn13: string;
 	title: string;
@@ -11,23 +19,70 @@ export interface BookMetadata {
 	pageCount?: number;
 	description?: string;
 	coverUrl?: string;
-	source: ProviderName;
+	/** Providers that contributed, in order. */
+	sources: string[];
+	/** Where the cover came from, if any. */
+	coverSource?: string;
 }
 
-export type ProviderName = 'google' | 'openlibrary' | 'bnf';
-type Provider = (isbn13: string, signal: AbortSignal) => Promise<BookMetadata | null>;
+export type ProviderName = 'bnf' | 'sudoc' | 'google' | 'openlibrary';
+
+type Partial = Omit<BookMetadata, 'isbn13' | 'sources' | 'coverUrl' | 'coverSource'> & {
+	/** Cover candidates, best first. Verified later. */
+	covers?: { url: string; source: string }[];
+	bnfArk?: string;
+};
+type Provider = (isbn13: string, signal: AbortSignal) => Promise<Partial | null>;
+
+const UA = 'leafy-ils/0.1 (village library catalogue)';
+const get = (url: string, signal: AbortSignal, headers: Record<string, string> = {}) =>
+	fetch(url, { signal, headers: { 'User-Agent': UA, ...headers }, redirect: 'follow' });
 
 const yearOf = (s?: string) => {
 	const m = s && /(\d{4})/.exec(s);
 	return m ? Number(m[1]) : undefined;
 };
 
+export const bnfCoverUrl = (ark: string) =>
+	`https://catalogue.bnf.fr/couverture?&appName=NE&idArk=${encodeURIComponent(ark)}&couverture=1`;
+
+/* ---------- BnF: SRU, UNIMARC via MarcXchange, cover by ARK ---------- */
+const bnf: Provider = async (isbn13, signal) => {
+	const query = encodeURIComponent(`bib.fuzzyISBN all "${isbn13}"`);
+	const res = await get(
+		`https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=${query}&recordSchema=unimarcXchange&maximumRecords=1`,
+		signal
+	);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const xml = await res.text();
+	const record = /<srw:record>([\s\S]*?)<\/srw:record>/.exec(xml)?.[1];
+	if (!record) return null;
+	const book = unimarcToBook(parseUnimarc(record));
+	if (!book) return null;
+	const ark = /<srw:recordIdentifier>\s*(ark:\/12148\/\w+)/.exec(record)?.[1] ?? book.bnfArk;
+	return { ...book, bnfArk: ark, covers: ark ? [{ url: bnfCoverUrl(ark), source: 'bnf' }] : [] };
+};
+
+/* ---------- Sudoc: ISBN → PPN → UNIMARC MARCXML ---------- */
+const sudoc: Provider = async (isbn13, signal) => {
+	const res = await get(`https://www.sudoc.fr/services/isbn2ppn/${isbn13}`, signal);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const ppn = /<ppn>(\w+)<\/ppn>/.exec(await res.text())?.[1];
+	if (!ppn) return null;
+	const rec = await get(`https://www.sudoc.fr/${ppn}.xml`, signal);
+	if (!rec.ok) throw new Error(`HTTP ${rec.status} for PPN ${ppn}`);
+	const book = unimarcToBook(parseUnimarc(await rec.text()));
+	if (!book) return null;
+	// Sudoc has no cover service, but it often links the BnF record, whose cover we can use.
+	return { ...book, covers: book.bnfArk ? [{ url: bnfCoverUrl(book.bnfArk), source: 'bnf' }] : [] };
+};
+
 /* ---------- Google Books ---------- */
 const google: Provider = async (isbn13, signal) => {
 	const key = env.GOOGLE_BOOKS_API_KEY ? `&key=${env.GOOGLE_BOOKS_API_KEY}` : '';
-	const res = await fetch(
+	const res = await get(
 		`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn13}&maxResults=1${key}`,
-		{ signal }
+		signal
 	);
 	// Without an API key Google shares a small daily quota across many callers and
 	// answers 429 often. Set GOOGLE_BOOKS_API_KEY or move it later in ISBN_PROVIDERS.
@@ -37,8 +92,11 @@ const google: Provider = async (isbn13, signal) => {
 	};
 	const v = json.items?.[0]?.volumeInfo;
 	if (!v || typeof v.title !== 'string') return null;
+	const thumb = (v.imageLinks?.thumbnail ?? v.imageLinks?.smallThumbnail)?.replace(
+		/^http:/,
+		'https:'
+	);
 	return {
-		isbn13,
 		title: v.subtitle ? `${v.title}: ${v.subtitle}` : v.title,
 		authors: Array.isArray(v.authors) ? (v.authors as string[]) : [],
 		publisher: v.publisher as string | undefined,
@@ -46,16 +104,21 @@ const google: Provider = async (isbn13, signal) => {
 		language: v.language as string | undefined,
 		pageCount: typeof v.pageCount === 'number' ? v.pageCount : undefined,
 		description: v.description as string | undefined,
-		coverUrl: v.imageLinks?.thumbnail?.replace(/^http:/, 'https:'),
-		source: 'google'
+		// zoom=1 is the ~128px thumbnail; zoom=2 gives a usable ~300px cover when it exists.
+		covers: thumb
+			? [
+					{ url: thumb.replace('zoom=1', 'zoom=2'), source: 'google' },
+					{ url: thumb, source: 'google' }
+				]
+			: []
 	};
 };
 
 /* ---------- Open Library ---------- */
 const openlibrary: Provider = async (isbn13, signal) => {
-	const res = await fetch(
+	const res = await get(
 		`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn13}&format=json&jscmd=data`,
-		{ signal, headers: { 'User-Agent': 'leafy-ils (village library)' } }
+		signal
 	);
 	if (!res.ok) throw new Error(`HTTP ${res.status}`);
 	const json = (await res.json()) as Record<string, Record<string, unknown>>;
@@ -63,81 +126,159 @@ const openlibrary: Provider = async (isbn13, signal) => {
 	if (!d || typeof d.title !== 'string') return null;
 	const names = (arr: unknown) =>
 		Array.isArray(arr) ? arr.map((x) => (x as { name?: string }).name).filter(Boolean) : [];
+	const cover = d.cover as { large?: string; medium?: string } | undefined;
 	return {
-		isbn13,
 		title: d.subtitle ? `${d.title}: ${d.subtitle}` : d.title,
 		authors: names(d.authors) as string[],
 		publisher: (names(d.publishers) as string[])[0],
 		publishedYear: yearOf(d.publish_date as string | undefined),
 		pageCount: typeof d.number_of_pages === 'number' ? d.number_of_pages : undefined,
-		coverUrl: (d.cover as { medium?: string } | undefined)?.medium,
-		source: 'openlibrary'
+		covers: [cover?.large, cover?.medium]
+			.filter((u): u is string => !!u)
+			.map((url) => ({ url, source: 'openlibrary' }))
 	};
 };
 
-/* ---------- BnF (Bibliothèque nationale de France) SRU, Dublin Core ---------- */
-const decodeXml = (s: string) =>
-	s
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&quot;/g, '"')
-		.replace(/&apos;/g, "'")
-		.replace(/&amp;/g, '&')
-		.trim();
-const dcAll = (xml: string, tag: string) =>
-	[...xml.matchAll(new RegExp(`<dc:${tag}[^>]*>([\\s\\S]*?)</dc:${tag}>`, 'g'))].map((m) =>
-		decodeXml(m[1])
-	);
-
-const bnf: Provider = async (isbn13, signal) => {
-	const query = encodeURIComponent(`bib.isbn all "${isbn13}"`);
-	const res = await fetch(
-		`https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=${query}&recordSchema=dublincore&maximumRecords=1`,
-		{ signal }
-	);
-	if (!res.ok) throw new Error(`HTTP ${res.status}`);
-	const xml = await res.text();
-	const record = /<srw:record>([\s\S]*?)<\/srw:record>/.exec(xml)?.[1];
-	if (!record) return null;
-	const title = dcAll(record, 'title')[0];
-	if (!title) return null;
-	// BnF creators look like "Dupont, Jean (1950-....). Auteur du texte"
-	const authors = dcAll(record, 'creator').map((c) => c.replace(/\s*\(.*$/, '').trim());
-	return {
-		isbn13,
-		title: title.replace(/\s*\/.*$/, '').trim(), // drop the "/ author" statement of responsibility
-		authors,
-		publisher: dcAll(record, 'publisher')[0]?.replace(/^.*?:\s*/, ''),
-		publishedYear: yearOf(dcAll(record, 'date')[0]),
-		language: dcAll(record, 'language')[0],
-		description: dcAll(record, 'description')[0],
-		source: 'bnf'
-	};
-};
-
-const providers: Record<ProviderName, Provider> = { google, openlibrary, bnf };
+const providers: Record<ProviderName, Provider> = { bnf, sudoc, google, openlibrary };
 
 function providerOrder(): ProviderName[] {
-	const raw = env.ISBN_PROVIDERS ?? 'google,openlibrary,bnf';
+	const raw = env.ISBN_PROVIDERS ?? 'bnf,sudoc,google,openlibrary';
 	return raw
 		.split(',')
 		.map((s) => s.trim())
 		.filter((s): s is ProviderName => s in providers);
 }
 
-/** Try each provider in ISBN_PROVIDERS order and return the first hit. */
-export async function lookupIsbn(isbn13: string, timeoutMs = 6000): Promise<BookMetadata | null> {
-	for (const name of providerOrder()) {
+/* ---------- Cover verification ---------- */
+const MIN_COVER_PX = 100;
+/** Sizes known to be "no cover" placeholders: BnF's grey book, Open Library's 1×1 gif. */
+const PLACEHOLDER_SIZES = new Set(['92x138', '1x1']);
+
+/** Fetch the image and accept it only if it decodes to a real cover. */
+export async function verifyCover(url: string, signal: AbortSignal): Promise<boolean> {
+	try {
+		const res = await get(url, signal);
+		if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) return false;
+		const buf = new Uint8Array(await res.arrayBuffer());
+		const size = imageSize(buf);
+		if (!size) return false;
+		if (PLACEHOLDER_SIZES.has(`${size.width}x${size.height}`)) return false;
+		return size.width >= MIN_COVER_PX && size.height >= MIN_COVER_PX;
+	} catch {
+		return false;
+	}
+}
+
+/** Last resort: Google Custom Search images, when GOOGLE_CSE_KEY and GOOGLE_CSE_ID are set. */
+async function googleImageCovers(
+	isbn13: string,
+	signal: AbortSignal
+): Promise<{ url: string; source: string }[]> {
+	if (!env.GOOGLE_CSE_KEY || !env.GOOGLE_CSE_ID) return [];
+	const res = await get(
+		`https://www.googleapis.com/customsearch/v1?key=${env.GOOGLE_CSE_KEY}&cx=${env.GOOGLE_CSE_ID}&searchType=image&num=5&gl=fr&fields=items(link,mime)&q=${isbn13}`,
+		signal
+	);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const json = (await res.json()) as { items?: { link: string; mime?: string }[] };
+	return (json.items ?? [])
+		.filter((i) => /^https?:/.test(i.link) && !/no-?image/i.test(i.link))
+		.map((i) => ({ url: i.link, source: 'googleimages' }));
+}
+
+const complete = (m: Partial) =>
+	!!(
+		m.title &&
+		m.authors.length &&
+		m.publisher &&
+		m.publishedYear &&
+		m.description &&
+		m.covers?.length
+	);
+
+function merge(into: Partial, from: Partial): Partial {
+	return {
+		title: into.title || from.title,
+		authors: into.authors.length ? into.authors : from.authors,
+		publisher: into.publisher ?? from.publisher,
+		publishedYear: into.publishedYear ?? from.publishedYear,
+		language: into.language ?? from.language,
+		pageCount: into.pageCount ?? from.pageCount,
+		description: into.description ?? from.description,
+		bnfArk: into.bnfArk ?? from.bnfArk,
+		covers: [...(into.covers ?? []), ...(from.covers ?? [])]
+	};
+}
+
+export interface LookupOptions {
+	timeoutMs?: number;
+	/** Skip the record providers and only look for a cover (used to fill missing covers). */
+	coverOnly?: boolean;
+}
+
+export async function lookupIsbn(
+	isbn13: string,
+	opts: LookupOptions = {}
+): Promise<BookMetadata | null> {
+	const timeoutMs = opts.timeoutMs ?? 8000;
+	const withTimeout = async <T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> => {
 		const ctrl = new AbortController();
 		const timer = setTimeout(() => ctrl.abort(), timeoutMs);
 		try {
-			const hit = await providers[name](isbn13, ctrl.signal);
-			if (hit) return hit;
-		} catch (err) {
-			console.warn(`[isbn] ${name} failed for ${isbn13}:`, (err as Error).message);
+			return await fn(ctrl.signal);
 		} finally {
 			clearTimeout(timer);
 		}
+	};
+
+	let merged: Partial | null = null;
+	const sources: string[] = [];
+	for (const name of providerOrder()) {
+		if (merged && complete(merged)) break;
+		try {
+			const hit = await withTimeout((s) => providers[name](isbn13, s));
+			if (!hit) continue;
+			sources.push(name);
+			merged = merged ? merge(merged, hit) : hit;
+		} catch (err) {
+			console.warn(`[isbn] ${name} failed for ${isbn13}:`, (err as Error).message);
+		}
 	}
-	return null;
+	if (!merged && !opts.coverOnly) return null;
+
+	// Cover: candidates from the records first, then sources that work from the ISBN alone.
+	const candidates = [...(merged?.covers ?? [])];
+	const seen = new Set<string>();
+	candidates.push({
+		url: `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg?default=false`,
+		source: 'openlibrary'
+	});
+	try {
+		candidates.push(...(await withTimeout((s) => googleImageCovers(isbn13, s))));
+	} catch (err) {
+		console.warn(`[isbn] googleimages failed for ${isbn13}:`, (err as Error).message);
+	}
+	let cover: { url: string; source: string } | undefined;
+	for (const c of candidates) {
+		if (seen.has(c.url)) continue;
+		seen.add(c.url);
+		if (await withTimeout((s) => verifyCover(c.url, s))) {
+			cover = c;
+			break;
+		}
+	}
+
+	return {
+		isbn13,
+		title: merged?.title ?? '',
+		authors: merged?.authors ?? [],
+		publisher: merged?.publisher,
+		publishedYear: merged?.publishedYear,
+		language: merged?.language ?? languageFromIsbn(isbn13),
+		pageCount: merged?.pageCount,
+		description: merged?.description,
+		coverUrl: cover?.url,
+		coverSource: cover?.source,
+		sources
+	};
 }
