@@ -47,10 +47,15 @@
 		return res.json();
 	}
 
+	/** Reload the selected family's loans. Never drops the selection, even if the reload fails. */
 	async function refreshFamily() {
 		if (!family?.family.barcode) return;
-		const r = await resolve(family.family.barcode);
-		if (r.kind === 'family') family = r;
+		try {
+			const r = await resolve(family.family.barcode);
+			if (r.kind === 'family') family = r;
+		} catch {
+			/* keep what we have */
+		}
 	}
 
 	/** Every scan, keypress-entered code or manual entry ends up here. */
@@ -190,13 +195,17 @@
 	}
 
 	/**
-	 * A family bringing books back usually borrows next. Select it, unless
-	 * another family is mid-transaction with books already in the basket.
+	 * A family bringing books back usually borrows next: a return selects its
+	 * family when none is selected. An existing selection is never changed by a
+	 * scan; only "Famille suivante" or picking a name does that.
 	 */
 	async function selectFamilyForReturn(loan: OpenLoan) {
-		if (family?.family.id === loan.familyId) return;
-		if (family && basket.length > 0) {
-			say('info', `Ce livre est à ${loan.family.name} ; ${family.family.name} reste sélectionnée`);
+		if (family) {
+			if (family.family.id !== loan.familyId)
+				say(
+					'info',
+					`Ce livre est à ${loan.family.name} (${family.family.name} reste sélectionnée)`
+				);
 			return;
 		}
 		if (!loan.family.barcode) return;
@@ -282,8 +291,9 @@
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h1 class="text-2xl font-semibold">Prêts &amp; retours</h1>
 		<p class="text-sm text-muted-foreground">
-			Scannez les livres rapportés : ils vont dans la liste des retours et leur famille est
-			sélectionnée. Scannez ensuite les livres à prêter. Rien n'est enregistré avant d'avoir validé.
+			Scannez les livres rapportés, puis ceux à prêter. Le premier retour sélectionne la famille ;
+			elle reste sélectionnée jusqu'à « Famille suivante ». Rien n'est enregistré avant d'avoir
+			validé.
 		</p>
 	</div>
 
