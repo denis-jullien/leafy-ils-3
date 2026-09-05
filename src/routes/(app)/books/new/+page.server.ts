@@ -27,7 +27,7 @@ export const actions: Actions = {
 				return setError(
 					form,
 					field,
-					`Already in the catalogue: "${err.existing.title}" (#${err.existing.id})`
+					`Déjà au catalogue : « ${err.existing.title} » (n° ${err.existing.id})`
 				);
 			}
 			if (err instanceof Error) return message(form, err.message, { status: 500 });

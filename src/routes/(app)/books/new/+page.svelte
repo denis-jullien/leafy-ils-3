@@ -8,10 +8,10 @@
 </script>
 
 <div class="space-y-4">
-	<h1 class="text-2xl font-semibold">Add a book</h1>
+	<h1 class="text-2xl font-semibold">Ajouter un livre</h1>
 	<p class="text-sm text-muted-foreground">
-		Scan the ISBN barcode on the back cover. The details fill in from the catalogue services; fix
-		whatever they got wrong and save.
+		Scannez le code-barres ISBN au dos du livre. Les informations se remplissent depuis les
+		catalogues en ligne ; corrigez ce qui manque et enregistrez.
 	</p>
-	<BookForm {sf} submitLabel="Add to catalogue" />
+	<BookForm {sf} submitLabel="Ajouter au catalogue" />
 </div>

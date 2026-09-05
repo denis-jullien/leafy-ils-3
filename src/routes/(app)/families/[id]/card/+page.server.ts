@@ -10,6 +10,6 @@ export const load: PageServerLoad = ({ params }) => {
 		.from(families)
 		.where(eq(families.id, Number(params.id)))
 		.get();
-	if (!family?.barcode) error(404, 'Family not found');
+	if (!family?.barcode) error(404, 'Famille introuvable');
 	return { family: { name: family.name, barcode: family.barcode } };
 };

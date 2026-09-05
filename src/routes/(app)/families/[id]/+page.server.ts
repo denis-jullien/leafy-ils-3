@@ -19,7 +19,7 @@ const loadFamily = (id: string) => {
 	const family = Number.isInteger(n)
 		? db.select().from(families).where(eq(families.id, n)).get()
 		: undefined;
-	if (!family) error(404, 'Family not found');
+	if (!family) error(404, 'Famille introuvable');
 	return family;
 };
 
@@ -45,7 +45,7 @@ export const actions: Actions = {
 		const form = await superValidate(event, zod4(familySchema));
 		if (!form.valid) return fail(400, { form });
 		updateFamily(db, family.id, form.data);
-		return message(form, 'Saved');
+		return message(form, 'Enregistré');
 	},
 	addMember: async (event) => {
 		const family = loadFamily(event.params.id);

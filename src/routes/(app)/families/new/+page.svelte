@@ -8,6 +8,6 @@
 </script>
 
 <div class="space-y-4">
-	<h1 class="text-2xl font-semibold">New family</h1>
-	<FamilyForm {sf} submitLabel="Create family" />
+	<h1 class="text-2xl font-semibold">Nouvelle famille</h1>
+	<FamilyForm {sf} submitLabel="Créer la famille" />
 </div>

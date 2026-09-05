@@ -22,24 +22,24 @@
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<h1 class="text-2xl font-semibold">{data.family.name}</h1>
 			<Button href="/circulation?family={data.family.barcode}" variant="secondary"
-				>Lend to this family</Button
+				>Prêter à cette famille</Button
 			>
 		</div>
 
 		<Card.Root>
-			<Card.Header><Card.Title>Books out ({data.loans.length})</Card.Title></Card.Header>
+			<Card.Header><Card.Title>Livres en prêt ({data.loans.length})</Card.Title></Card.Header>
 			<Card.Content>
 				{#if actionData && 'error' in actionData && actionData.error}
 					<p class="mb-2 text-sm text-destructive">{actionData.error}</p>
 				{/if}
 				{#if data.loans.length === 0}
-					<p class="text-sm text-muted-foreground">Nothing on loan.</p>
+					<p class="text-sm text-muted-foreground">Rien en prêt.</p>
 				{:else}
 					<Table.Root>
 						<Table.Header>
 							<Table.Row>
-								<Table.Head>Book</Table.Head>
-								<Table.Head>Due</Table.Head>
+								<Table.Head>Livre</Table.Head>
+								<Table.Head>À rendre le</Table.Head>
 								<Table.Head></Table.Head>
 							</Table.Row>
 						</Table.Header>
@@ -55,11 +55,11 @@
 									<Table.Cell class="flex justify-end gap-1">
 										<form method="post" action="?/renew" use:enhance>
 											<input type="hidden" name="loanId" value={l.id} />
-											<Button type="submit" size="sm" variant="ghost">Renew</Button>
+											<Button type="submit" size="sm" variant="ghost">Prolonger</Button>
 										</form>
 										<form method="post" action="?/returnBook" use:enhance>
 											<input type="hidden" name="bookId" value={l.book.id} />
-											<Button type="submit" size="sm" variant="secondary">Return</Button>
+											<Button type="submit" size="sm" variant="secondary">Retour</Button>
 										</form>
 									</Table.Cell>
 								</Table.Row>
@@ -71,24 +71,24 @@
 		</Card.Root>
 
 		<Card.Root>
-			<Card.Header><Card.Title>Details</Card.Title></Card.Header>
+			<Card.Header><Card.Title>Coordonnées</Card.Title></Card.Header>
 			<Card.Content><FamilyForm {sf} action="?/save" /></Card.Content>
 		</Card.Root>
 	</div>
 
 	<div class="space-y-6">
 		<Card.Root>
-			<Card.Header><Card.Title>Membership card</Card.Title></Card.Header>
+			<Card.Header><Card.Title>Carte d'abonné</Card.Title></Card.Header>
 			<Card.Content class="space-y-2">
 				{#if data.family.barcode}<Barcode value={data.family.barcode} />{/if}
 				<Button href="/families/{data.family.id}/card" variant="outline" size="sm" target="_blank"
-					>Print card</Button
+					>Imprimer la carte</Button
 				>
 			</Card.Content>
 		</Card.Root>
 
 		<Card.Root>
-			<Card.Header><Card.Title>Members</Card.Title></Card.Header>
+			<Card.Header><Card.Title>Membres</Card.Title></Card.Header>
 			<Card.Content class="space-y-3">
 				<ul class="space-y-1 text-sm">
 					{#each data.members as m (m.id)}
@@ -96,23 +96,23 @@
 							<span>{m.name}{m.birthYear ? ` (${m.birthYear})` : ''}</span>
 							<form method="post" action="?/removeMember" use:enhance>
 								<input type="hidden" name="memberId" value={m.id} />
-								<Button type="submit" size="sm" variant="ghost">×</Button>
+								<Button type="submit" size="sm" variant="ghost" title="Retirer">×</Button>
 							</form>
 						</li>
 					{:else}
-						<li class="text-muted-foreground">No members listed.</li>
+						<li class="text-muted-foreground">Aucun membre renseigné.</li>
 					{/each}
 				</ul>
 				<form method="post" action="?/addMember" use:memberEnhance class="flex gap-2" data-no-wedge>
-					<Input name="name" bind:value={$memberForm.name} placeholder="Name" />
+					<Input name="name" bind:value={$memberForm.name} placeholder="Prénom" />
 					<Input
 						name="birthYear"
 						type="number"
 						bind:value={$memberForm.birthYear}
-						placeholder="Born"
+						placeholder="Né en"
 						class="w-24"
 					/>
-					<Button type="submit" size="sm">Add</Button>
+					<Button type="submit" size="sm">Ajouter</Button>
 				</form>
 				{#if $memberErrors.name}<p class="text-sm text-destructive">{$memberErrors.name}</p>{/if}
 			</Card.Content>

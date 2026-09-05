@@ -11,6 +11,7 @@
 	import type { Book } from '$lib/server/db/schema';
 	import { fmtDate, isOverdue } from '$lib/format';
 	import { parseIsbn } from '$lib/isbn';
+	import { BOOK_STATUS } from '$lib/labels';
 
 	let { data } = $props();
 
@@ -32,7 +33,7 @@
 
 	async function resolve(code: string): Promise<Resolved> {
 		const res = await fetch(`/api/scan/${encodeURIComponent(code)}`);
-		if (!res.ok) throw new Error(`Lookup failed (${res.status})`);
+		if (!res.ok) throw new Error(`Recherche impossible (${res.status})`);
 		return res.json();
 	}
 
@@ -44,7 +45,7 @@
 
 	async function returnLoan(loanId: number) {
 		const res = await fetch(`/api/loans/${loanId}/return`, { method: 'POST' });
-		if (!res.ok) throw new Error((await res.json()).error ?? 'Return failed');
+		if (!res.ok) throw new Error((await res.json()).error ?? 'Retour impossible');
 	}
 
 	/** Every scan, keypress-entered code or manual entry ends up here. */
@@ -56,39 +57,47 @@
 			const r = await resolve(code);
 			if (r.kind === 'family') {
 				family = r;
-				say('info', `${r.family.name}: ${r.openLoans.length} book(s) out`);
-				if (r.family.status !== 'active') say('warn', `${r.family.name} is not an active member`);
+				say('info', `${r.family.name} : ${r.openLoans.length} livre(s) en prêt`);
+				if (r.family.status !== 'active') say('warn', `${r.family.name} n'est pas un abonné actif`);
 				return;
 			}
 			if (r.kind === 'book') {
 				const { book, openLoan } = r;
 				if (openLoan) {
 					await returnLoan(openLoan.id);
-					const late = isOverdue(openLoan.dueAt) ? ' (was overdue)' : '';
+					const late = isOverdue(openLoan.dueAt) ? ' (en retard)' : '';
 					say(
 						'ok',
-						`Returned "${book.title}" from ${openLoan.family.name}${late}`,
+						`Retour de « ${book.title} » (${openLoan.family.name})${late}`,
 						`/books/${book.id}`
 					);
 					if (family && openLoan.familyId === family.family.id) await refreshFamily();
 					return;
 				}
 				if (book.status !== 'active') {
-					say('warn', `"${book.title}" is marked ${book.status}`, `/books/${book.id}`);
+					say(
+						'warn',
+						`« ${book.title} » est marqué ${BOOK_STATUS[book.status]}`,
+						`/books/${book.id}`
+					);
 					return;
 				}
 				if (basket.some((b) => b.id === book.id)) {
-					say('info', `"${book.title}" is already in the basket`);
+					say('info', `« ${book.title} » est déjà dans le panier`);
 					return;
 				}
 				basket = [...basket, book];
-				say('ok', `Added "${book.title}"`, `/books/${book.id}`);
+				say('ok', `Ajouté : « ${book.title} »`, `/books/${book.id}`);
 				return;
 			}
 			const isbn = parseIsbn(code);
 			if (isbn)
-				say('warn', `Not in the catalogue: ${isbn}. Click to add it.`, `/books/new?isbn=${isbn}`);
-			else say('err', `Unknown code: ${code}`);
+				say(
+					'warn',
+					`Pas au catalogue : ${isbn}. Cliquez pour l'ajouter.`,
+					`/books/new?isbn=${isbn}`
+				);
+			else say('err', `Code inconnu : ${code}`);
 		} catch (err) {
 			say('err', (err as Error).message);
 		} finally {
@@ -106,9 +115,9 @@
 				body: JSON.stringify({ familyId: family.family.id, bookIds: basket.map((b) => b.id) })
 			});
 			const body = await res.json();
-			if (!res.ok) throw new Error(body.error ?? 'Checkout failed');
+			if (!res.ok) throw new Error(body.error ?? 'Prêt impossible');
 			const due = fmtDate(body.loans[0].dueAt);
-			say('ok', `Lent ${basket.length} book(s) to ${family.family.name}, due ${due}`);
+			say('ok', `${basket.length} livre(s) prêté(s) à ${family.family.name}, retour le ${due}`);
 			basket = [];
 			await refreshFamily();
 		} catch (err) {
@@ -121,7 +130,7 @@
 	function finish() {
 		family = null;
 		basket = [];
-		say('info', 'Ready for the next family');
+		say('info', 'Prêt pour la famille suivante');
 	}
 
 	function onManualKeydown(e: KeyboardEvent) {
@@ -142,16 +151,17 @@
 
 <div class="space-y-4">
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<h1 class="text-2xl font-semibold">Circulation</h1>
+		<h1 class="text-2xl font-semibold">Prêts &amp; retours</h1>
 		<p class="text-sm text-muted-foreground">
-			Scan a family card and books in any order. Scanning a book that is out returns it.
+			Scannez une carte de famille et des livres, dans n'importe quel ordre. Scanner un livre en
+			prêt le fait revenir.
 		</p>
 	</div>
 
 	<Input
 		bind:value={manual}
 		onkeydown={onManualKeydown}
-		placeholder="Scan here, or type a card number / ISBN and press Enter"
+		placeholder="Scannez ici, ou tapez un numéro de carte / ISBN puis Entrée"
 		class="h-12 text-lg"
 		autofocus
 		data-no-wedge
@@ -160,7 +170,7 @@
 	<div class="grid gap-4 lg:grid-cols-3">
 		<Card.Root class="lg:col-span-1">
 			<Card.Header>
-				<Card.Title>Family</Card.Title>
+				<Card.Title>Famille</Card.Title>
 			</Card.Header>
 			<Card.Content>
 				{#if family}
@@ -169,11 +179,11 @@
 							<a class="text-lg font-medium underline" href="/families/{family.family.id}"
 								>{family.family.name}</a
 							>
-							{#if family.family.status !== 'active'}<Badge variant="destructive">inactive</Badge
+							{#if family.family.status !== 'active'}<Badge variant="destructive">inactif</Badge
 								>{/if}
 						</div>
 						<div class="text-sm text-muted-foreground">
-							{family.openLoans.length} of {data.policy.maxLoans} out
+							{family.openLoans.length} sur {data.policy.maxLoans} en prêt
 						</div>
 						<ul class="space-y-1 text-sm">
 							{#each family.openLoans as l (l.id)}
@@ -185,21 +195,21 @@
 								</li>
 							{/each}
 						</ul>
-						<Button variant="ghost" size="sm" onclick={finish}>Done with this family</Button>
+						<Button variant="ghost" size="sm" onclick={finish}>Famille suivante</Button>
 					</div>
 				{:else}
-					<p class="text-sm text-muted-foreground">Scan a membership card.</p>
+					<p class="text-sm text-muted-foreground">Scannez une carte d'abonné.</p>
 				{/if}
 			</Card.Content>
 		</Card.Root>
 
 		<Card.Root class="lg:col-span-1">
 			<Card.Header>
-				<Card.Title>To lend ({basket.length})</Card.Title>
+				<Card.Title>À prêter ({basket.length})</Card.Title>
 			</Card.Header>
 			<Card.Content class="space-y-3">
 				{#if basket.length === 0}
-					<p class="text-sm text-muted-foreground">Scan the books.</p>
+					<p class="text-sm text-muted-foreground">Scannez les livres.</p>
 				{:else}
 					<ul class="space-y-1 text-sm">
 						{#each basket as b (b.id)}
@@ -208,7 +218,7 @@
 								<button
 									class="text-muted-foreground hover:text-foreground"
 									onclick={() => (basket = basket.filter((x) => x.id !== b.id))}
-									title="Remove">×</button
+									title="Retirer">×</button
 								>
 							</li>
 						{/each}
@@ -220,17 +230,17 @@
 					disabled={!family || basket.length === 0 || busy}
 					onclick={checkout}
 				>
-					Lend {basket.length ? `${basket.length} book(s)` : ''}{family
-						? ` to ${family.family.name}`
+					Prêter {basket.length ? `${basket.length} livre(s)` : ''}{family
+						? ` à ${family.family.name}`
 						: ''}
 				</Button>
-				<p class="text-xs text-muted-foreground">Due in {data.policy.loanDays} days.</p>
+				<p class="text-xs text-muted-foreground">À rendre sous {data.policy.loanDays} jours.</p>
 			</Card.Content>
 		</Card.Root>
 
 		<Card.Root class="lg:col-span-1">
 			<Card.Header>
-				<Card.Title>Activity</Card.Title>
+				<Card.Title>Activité</Card.Title>
 			</Card.Header>
 			<Card.Content>
 				<ul class="space-y-1 text-sm">
@@ -247,7 +257,7 @@
 							{#if e.href}<a class="underline" href={e.href}>{e.text}</a>{:else}{e.text}{/if}
 						</li>
 					{:else}
-						<li class="text-muted-foreground">Nothing yet.</li>
+						<li class="text-muted-foreground">Rien pour l'instant.</li>
 					{/each}
 				</ul>
 			</Card.Content>

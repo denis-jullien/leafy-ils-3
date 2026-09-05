@@ -24,7 +24,8 @@ export const actions: Actions = {
 				headers: event.request.headers
 			});
 		} catch (err) {
-			if (err instanceof APIError) return message(form, 'Wrong email or password', { status: 401 });
+			if (err instanceof APIError)
+				return message(form, 'Email ou mot de passe incorrect', { status: 401 });
 			throw err;
 		}
 		redirect(303, safeNext(event.url.searchParams.get('next')));

@@ -12,8 +12,8 @@
 	<Barcode value={data.family.barcode} height={40} />
 </div>
 <p class="no-print mt-4 text-sm text-muted-foreground">
-	<button class="underline" onclick={() => window.print()}>Print</button>
-	at 100 % scale. The card is credit-card sized.
+	<button class="underline" onclick={() => window.print()}>Imprimer</button>
+	à l'échelle 100 %. La carte a le format d'une carte bancaire.
 </p>
 
 <style>

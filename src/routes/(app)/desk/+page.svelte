@@ -6,16 +6,16 @@
 
 	let { data } = $props();
 	const tiles = $derived([
-		{ label: 'Books', n: data.stats.books, href: '/books' },
-		{ label: 'Families', n: data.stats.families, href: '/families' },
-		{ label: 'On loan', n: data.stats.onLoan, href: '/circulation' }
+		{ label: 'Livres', n: data.stats.books, href: '/books' },
+		{ label: 'Familles', n: data.stats.families, href: '/families' },
+		{ label: 'En prêt', n: data.stats.onLoan, href: '/circulation' }
 	]);
 </script>
 
 <div class="space-y-6">
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<h1 class="text-2xl font-semibold">Dashboard</h1>
-		<Button href="/circulation" size="lg">Start lending</Button>
+		<h1 class="text-2xl font-semibold">Tableau de bord</h1>
+		<Button href="/circulation" size="lg">Commencer les prêts</Button>
 	</div>
 
 	<div class="grid gap-4 sm:grid-cols-3">
@@ -33,18 +33,18 @@
 
 	<Card.Root>
 		<Card.Header>
-			<Card.Title>Overdue ({data.overdue.length})</Card.Title>
+			<Card.Title>Retards ({data.overdue.length})</Card.Title>
 		</Card.Header>
 		<Card.Content>
 			{#if data.overdue.length === 0}
-				<p class="text-sm text-muted-foreground">Nothing overdue. Nice village.</p>
+				<p class="text-sm text-muted-foreground">Aucun retard. Quel village.</p>
 			{:else}
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
-							<Table.Head>Book</Table.Head>
-							<Table.Head>Family</Table.Head>
-							<Table.Head>Due</Table.Head>
+							<Table.Head>Livre</Table.Head>
+							<Table.Head>Famille</Table.Head>
+							<Table.Head>À rendre le</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>

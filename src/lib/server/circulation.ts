@@ -4,6 +4,7 @@ import { books, families, loans, type Book, type Family, type Loan } from './db/
 import { LOAN_DAYS, MAX_LOANS_PER_FAMILY, MAX_RENEWALS } from '$lib/config';
 import { normalizeRfidUid, parseBookBarcode, parseFamilyBarcode } from '$lib/barcodes';
 import { parseIsbn } from '$lib/isbn';
+import { BOOK_STATUS } from '$lib/labels';
 
 export class CirculationError extends Error {
 	constructor(
@@ -115,9 +116,9 @@ export function checkout(db: Db, input: CheckoutInput): Loan[] {
 	const now = input.now ?? new Date();
 	return db.transaction((tx) => {
 		const family = tx.select().from(families).where(eq(families.id, input.familyId)).get();
-		if (!family) throw new CirculationError('FAMILY_NOT_FOUND', 'Family not found');
+		if (!family) throw new CirculationError('FAMILY_NOT_FOUND', 'Famille introuvable');
 		if (family.status !== 'active')
-			throw new CirculationError('FAMILY_INACTIVE', `${family.name} is not an active member`);
+			throw new CirculationError('FAMILY_INACTIVE', `${family.name} n'est pas un abonné actif`);
 
 		const openCount =
 			tx
@@ -128,15 +129,18 @@ export function checkout(db: Db, input: CheckoutInput): Loan[] {
 		if (openCount + input.bookIds.length > MAX_LOANS_PER_FAMILY)
 			throw new CirculationError(
 				'LOAN_LIMIT',
-				`${family.name} already has ${openCount} books out (limit ${MAX_LOANS_PER_FAMILY})`
+				`${family.name} a déjà ${openCount} livre(s) en prêt (maximum ${MAX_LOANS_PER_FAMILY})`
 			);
 
 		const created: Loan[] = [];
 		for (const bookId of new Set(input.bookIds)) {
 			const book = tx.select().from(books).where(eq(books.id, bookId)).get();
-			if (!book) throw new CirculationError('BOOK_NOT_FOUND', `Book ${bookId} not found`);
+			if (!book) throw new CirculationError('BOOK_NOT_FOUND', `Livre ${bookId} introuvable`);
 			if (book.status !== 'active')
-				throw new CirculationError('BOOK_UNAVAILABLE', `"${book.title}" is ${book.status}`);
+				throw new CirculationError(
+					'BOOK_UNAVAILABLE',
+					`« ${book.title} » est ${BOOK_STATUS[book.status]}`
+				);
 			const open = tx
 				.select({ familyId: loans.familyId })
 				.from(loans)
@@ -145,7 +149,7 @@ export function checkout(db: Db, input: CheckoutInput): Loan[] {
 			if (open)
 				throw new CirculationError(
 					'ALREADY_ON_LOAN',
-					`"${book.title}" is already on loan${open.familyId === family.id ? ' to this family' : ''}`
+					`« ${book.title} » est déjà en prêt${open.familyId === family.id ? ' à cette famille' : ''}`
 				);
 			created.push(
 				tx
@@ -168,16 +172,16 @@ export function checkout(db: Db, input: CheckoutInput): Loan[] {
 /** Return a book. Whoever brings it back, it goes back on the shelf. */
 export function returnBook(db: Db, bookId: number, userId?: string, now = new Date()): OpenLoan {
 	const open = openLoanOf(db, bookId);
-	if (!open) throw new CirculationError('NOT_ON_LOAN', 'This book is not on loan');
+	if (!open) throw new CirculationError('NOT_ON_LOAN', "Ce livre n'est pas en prêt");
 	db.update(loans).set({ returnedAt: now, returnedBy: userId }).where(eq(loans.id, open.id)).run();
 	return { ...open, returnedAt: now, returnedBy: userId ?? null };
 }
 
 export function renewLoan(db: Db, loanId: number, now = new Date()): Loan {
 	const loan = db.select().from(loans).where(eq(loans.id, loanId)).get();
-	if (!loan || loan.returnedAt) throw new CirculationError('NOT_ON_LOAN', 'Loan is closed');
+	if (!loan || loan.returnedAt) throw new CirculationError('NOT_ON_LOAN', 'Ce prêt est terminé');
 	if (loan.renewals >= MAX_RENEWALS)
-		throw new CirculationError('RENEWAL_LIMIT', `Already renewed ${loan.renewals} time(s)`);
+		throw new CirculationError('RENEWAL_LIMIT', `Déjà prolongé ${loan.renewals} fois`);
 	return db
 		.update(loans)
 		.set({ renewals: loan.renewals + 1, dueAt: dueDate(now) })

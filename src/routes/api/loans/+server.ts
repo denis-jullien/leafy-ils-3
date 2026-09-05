@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			!Array.isArray(body.bookIds) ||
 			body.bookIds.length === 0
 		)
-			return json({ error: 'familyId and bookIds are required' }, { status: 400 });
+			return json({ error: 'familyId et bookIds sont obligatoires' }, { status: 400 });
 		const loans = checkout(db, {
 			familyId: body.familyId,
 			bookIds: body.bookIds.map(Number),

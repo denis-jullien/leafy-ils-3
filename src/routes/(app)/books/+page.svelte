@@ -5,30 +5,36 @@
 	import * as Table from '$lib/components/ui/table';
 	import { fmtDate } from '$lib/format';
 	import { formatIsbn13 } from '$lib/isbn';
+	import { BOOK_STATUS } from '$lib/labels';
 
 	let { data } = $props();
 </script>
 
 <div class="space-y-4">
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<h1 class="text-2xl font-semibold">Books</h1>
-		<Button href="/books/new">Add a book</Button>
+		<h1 class="text-2xl font-semibold">Livres</h1>
+		<Button href="/books/new">Ajouter un livre</Button>
 	</div>
 
 	<form method="get" class="flex gap-2" data-no-wedge>
-		<Input name="q" value={data.q} placeholder="Title, author, ISBN or label…" class="max-w-md" />
-		<Button type="submit" variant="secondary">Search</Button>
-		{#if data.q}<Button href="/books" variant="ghost">Clear</Button>{/if}
+		<Input
+			name="q"
+			value={data.q}
+			placeholder="Titre, auteur, ISBN ou étiquette…"
+			class="max-w-md"
+		/>
+		<Button type="submit" variant="secondary">Rechercher</Button>
+		{#if data.q}<Button href="/books" variant="ghost">Effacer</Button>{/if}
 	</form>
 
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head>Title</Table.Head>
-				<Table.Head>Authors</Table.Head>
-				<Table.Head>ISBN / label</Table.Head>
-				<Table.Head>Shelf</Table.Head>
-				<Table.Head>Status</Table.Head>
+				<Table.Head>Titre</Table.Head>
+				<Table.Head>Auteurs</Table.Head>
+				<Table.Head>ISBN / étiquette</Table.Head>
+				<Table.Head>Rayon</Table.Head>
+				<Table.Head>État</Table.Head>
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
@@ -44,17 +50,18 @@
 					<Table.Cell>{book.shelf ?? ''}</Table.Cell>
 					<Table.Cell>
 						{#if book.status !== 'active'}
-							<Badge variant="outline">{book.status}</Badge>
+							<Badge variant="outline">{BOOK_STATUS[book.status]}</Badge>
 						{:else if onLoanTo}
-							<Badge variant="secondary">on loan · due {fmtDate(dueAt)}</Badge>
+							<Badge variant="secondary">en prêt · retour {fmtDate(dueAt)}</Badge>
 						{:else}
-							<Badge>available</Badge>
+							<Badge>disponible</Badge>
 						{/if}
 					</Table.Cell>
 				</Table.Row>
 			{:else}
 				<Table.Row
-					><Table.Cell colspan={5} class="text-muted-foreground">No books yet.</Table.Cell
+					><Table.Cell colspan={5} class="text-muted-foreground"
+						>Aucun livre pour l'instant.</Table.Cell
 					></Table.Row
 				>
 			{/each}

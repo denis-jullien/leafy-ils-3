@@ -1,5 +1,6 @@
-const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
-const dateTimeFmt = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+const LOCALE = 'fr-FR';
+const dateFmt = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium' });
+const dateTimeFmt = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
 
 export const fmtDate = (d: Date | number | string | null | undefined) =>
 	d == null ? '' : dateFmt.format(new Date(d));

@@ -31,7 +31,8 @@ export const auth = betterAuth({
 		before: createAuthMiddleware(async (ctx) => {
 			if (ctx.path === '/sign-up/email' && (await userCount()) > 0) {
 				throw new APIError('FORBIDDEN', {
-					message: 'Sign-up is closed. Ask an administrator to create your account.'
+					message:
+						'Les inscriptions sont fermées. Demandez à un administrateur de créer votre compte.'
 				});
 			}
 		})

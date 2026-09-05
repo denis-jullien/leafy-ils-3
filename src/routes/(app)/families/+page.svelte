@@ -3,30 +3,31 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Table from '$lib/components/ui/table';
+	import { FAMILY_STATUS } from '$lib/labels';
 
 	let { data } = $props();
 </script>
 
 <div class="space-y-4">
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<h1 class="text-2xl font-semibold">Families</h1>
-		<Button href="/families/new">New family</Button>
+		<h1 class="text-2xl font-semibold">Familles</h1>
+		<Button href="/families/new">Nouvelle famille</Button>
 	</div>
 
 	<form method="get" class="flex gap-2" data-no-wedge>
-		<Input name="q" value={data.q} placeholder="Name, card number or email…" class="max-w-md" />
-		<Button type="submit" variant="secondary">Search</Button>
-		{#if data.q}<Button href="/families" variant="ghost">Clear</Button>{/if}
+		<Input name="q" value={data.q} placeholder="Nom, numéro de carte ou email…" class="max-w-md" />
+		<Button type="submit" variant="secondary">Rechercher</Button>
+		{#if data.q}<Button href="/families" variant="ghost">Effacer</Button>{/if}
 	</form>
 
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head>Family</Table.Head>
-				<Table.Head>Card</Table.Head>
+				<Table.Head>Famille</Table.Head>
+				<Table.Head>Carte</Table.Head>
 				<Table.Head>Contact</Table.Head>
-				<Table.Head>Books out</Table.Head>
-				<Table.Head>Status</Table.Head>
+				<Table.Head>Livres en prêt</Table.Head>
+				<Table.Head>Abonnement</Table.Head>
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
@@ -40,14 +41,15 @@
 					<Table.Cell class="text-sm">{family.phone ?? family.email ?? ''}</Table.Cell>
 					<Table.Cell>{open}</Table.Cell>
 					<Table.Cell>
-						{#if family.status === 'active'}<Badge>active</Badge>{:else}<Badge variant="outline"
-								>inactive</Badge
+						{#if family.status === 'active'}<Badge>{FAMILY_STATUS.active}</Badge>{:else}<Badge
+								variant="outline">{FAMILY_STATUS.inactive}</Badge
 							>{/if}
 					</Table.Cell>
 				</Table.Row>
 			{:else}
 				<Table.Row
-					><Table.Cell colspan={5} class="text-muted-foreground">No families yet.</Table.Cell
+					><Table.Cell colspan={5} class="text-muted-foreground"
+						>Aucune famille pour l'instant.</Table.Cell
 					></Table.Row
 				>
 			{/each}

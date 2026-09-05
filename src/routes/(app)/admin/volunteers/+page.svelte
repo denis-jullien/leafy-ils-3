@@ -7,6 +7,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
+	import { ROLE } from '$lib/labels';
 
 	let { data, form: actionData } = $props();
 	// svelte-ignore state_referenced_locally
@@ -21,7 +22,7 @@
 
 <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
 	<Card.Root>
-		<Card.Header><Card.Title>Volunteers</Card.Title></Card.Header>
+		<Card.Header><Card.Title>Bénévoles</Card.Title></Card.Header>
 		<Card.Content>
 			{#if actionData && 'error' in actionData && actionData.error}
 				<p class="mb-2 text-sm text-destructive">{actionData.error}</p>
@@ -29,9 +30,9 @@
 			<Table.Root>
 				<Table.Header>
 					<Table.Row>
-						<Table.Head>Name</Table.Head>
+						<Table.Head>Nom</Table.Head>
 						<Table.Head>Email</Table.Head>
-						<Table.Head>Role</Table.Head>
+						<Table.Head>Rôle</Table.Head>
 						<Table.Head></Table.Head>
 					</Table.Row>
 				</Table.Header>
@@ -41,8 +42,7 @@
 							<Table.Cell>{u.name}</Table.Cell>
 							<Table.Cell class="text-sm">{u.email}</Table.Cell>
 							<Table.Cell
-								><Badge variant={u.role === 'admin' ? 'default' : 'secondary'}
-									>{u.role === 'admin' ? 'admin' : 'volunteer'}</Badge
+								><Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{ROLE[u.role]}</Badge
 								></Table.Cell
 							>
 							<Table.Cell class="flex justify-end gap-1">
@@ -50,7 +50,7 @@
 									<input type="hidden" name="userId" value={u.id} />
 									<input type="hidden" name="role" value={u.role === 'admin' ? 'user' : 'admin'} />
 									<Button type="submit" size="sm" variant="ghost"
-										>{u.role === 'admin' ? 'Make volunteer' : 'Make admin'}</Button
+										>{u.role === 'admin' ? 'Passer bénévole' : 'Passer administrateur'}</Button
 									>
 								</form>
 								<form
@@ -58,12 +58,12 @@
 									action="?/remove"
 									use:enhance
 									onsubmit={(e) => {
-										if (!confirm(`Remove ${u.name}?`)) e.preventDefault();
+										if (!confirm(`Supprimer le compte de ${u.name} ?`)) e.preventDefault();
 									}}
 								>
 									<input type="hidden" name="userId" value={u.id} />
 									<Button type="submit" size="sm" variant="ghost" class="text-destructive"
-										>Remove</Button
+										>Supprimer</Button
 									>
 								</form>
 							</Table.Cell>
@@ -76,13 +76,13 @@
 
 	<Card.Root>
 		<Card.Header>
-			<Card.Title>Add a volunteer</Card.Title>
-			<Card.Description>They sign in with this email and password.</Card.Description>
+			<Card.Title>Ajouter un bénévole</Card.Title>
+			<Card.Description>Il se connectera avec cet email et ce mot de passe.</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<form method="post" action="?/create" use:formEnhance class="space-y-3" data-no-wedge>
 				<div class="space-y-1">
-					<Label for="name">Name</Label>
+					<Label for="name">Nom</Label>
 					<Input id="name" name="name" bind:value={$form.name} />
 					{#if $errors.name}<p class="text-sm text-destructive">{$errors.name}</p>{/if}
 				</div>
@@ -92,7 +92,7 @@
 					{#if $errors.email}<p class="text-sm text-destructive">{$errors.email}</p>{/if}
 				</div>
 				<div class="space-y-1">
-					<Label for="password">Password</Label>
+					<Label for="password">Mot de passe</Label>
 					<Input
 						id="password"
 						name="password"
@@ -103,19 +103,19 @@
 					{#if $errors.password}<p class="text-sm text-destructive">{$errors.password}</p>{/if}
 				</div>
 				<div class="space-y-1">
-					<Label for="role">Role</Label>
+					<Label for="role">Rôle</Label>
 					<select
 						id="role"
 						name="role"
 						bind:value={$form.role}
 						class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
 					>
-						<option value="user">Volunteer</option>
-						<option value="admin">Administrator</option>
+						<option value="user">Bénévole</option>
+						<option value="admin">Administrateur</option>
 					</select>
 				</div>
 				{#if $message}<p class="text-sm">{$message}</p>{/if}
-				<Button type="submit" disabled={$submitting}>Create account</Button>
+				<Button type="submit" disabled={$submitting}>Créer le compte</Button>
 			</form>
 		</Card.Content>
 	</Card.Root>

@@ -15,16 +15,16 @@
 	<div class="mx-auto max-w-sm pt-16">
 		<Card.Root>
 			<Card.Header>
-				<Card.Title>Welcome to {LIBRARY_NAME}</Card.Title>
+				<Card.Title>Bienvenue sur {LIBRARY_NAME}</Card.Title>
 				<Card.Description>
-					No accounts exist yet. Create the administrator account. Other volunteers are added later
-					from the Admin page.
+					Aucun compte n'existe encore. Créez le compte administrateur. Les autres bénévoles seront
+					ajoutés ensuite depuis la page Bénévoles.
 				</Card.Description>
 			</Card.Header>
 			<Card.Content>
 				<form method="post" use:enhance class="space-y-4" data-no-wedge>
 					<div class="space-y-1">
-						<Label for="name">Your name</Label>
+						<Label for="name">Votre nom</Label>
 						<Input id="name" name="name" bind:value={$form.name} />
 						{#if $errors.name}<p class="text-sm text-destructive">{$errors.name}</p>{/if}
 					</div>
@@ -34,7 +34,7 @@
 						{#if $errors.email}<p class="text-sm text-destructive">{$errors.email}</p>{/if}
 					</div>
 					<div class="space-y-1">
-						<Label for="password">Password</Label>
+						<Label for="password">Mot de passe</Label>
 						<Input
 							id="password"
 							name="password"
@@ -45,7 +45,8 @@
 						{#if $errors.password}<p class="text-sm text-destructive">{$errors.password}</p>{/if}
 					</div>
 					{#if $message}<p class="text-sm text-destructive">{$message}</p>{/if}
-					<Button type="submit" class="w-full" disabled={$submitting}>Create administrator</Button>
+					<Button type="submit" class="w-full" disabled={$submitting}>Créer l'administrateur</Button
+					>
 				</form>
 			</Card.Content>
 		</Card.Root>

@@ -8,13 +8,14 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { parseIsbn } from '$lib/isbn';
 	import { CATEGORIES } from '$lib/config';
+	import { BOOK_STATUS } from '$lib/labels';
 	import type { BookMetadata } from '$lib/server/metadata';
 
 	type Data = z.infer<typeof bookSchema>;
 	let {
 		sf,
 		action,
-		submitLabel = 'Save',
+		submitLabel = 'Enregistrer',
 		showLookup = true
 	}: {
 		sf: SuperForm<Data>;
@@ -33,7 +34,7 @@
 	async function lookup() {
 		const isbn = parseIsbn($form.isbn ?? '');
 		if (!isbn) {
-			lookupNote = 'Enter a valid ISBN first.';
+			lookupNote = "Saisissez d'abord un ISBN valide.";
 			return;
 		}
 		looking = true;
@@ -41,7 +42,7 @@
 		try {
 			const res = await fetch(`/api/isbn/${isbn}`);
 			if (res.status === 404) {
-				lookupNote = 'No record found. Fill the details by hand.';
+				lookupNote = 'Aucune notice trouvée. Remplissez les champs à la main.';
 				return;
 			}
 			if (!res.ok) throw new Error(await res.text());
@@ -55,9 +56,9 @@
 			$form.pageCount ||= m.pageCount ?? null;
 			$form.description ||= m.description ?? '';
 			$form.coverUrl ||= m.coverUrl ?? '';
-			lookupNote = `Found via ${m.source}.`;
+			lookupNote = `Notice trouvée (${m.source}).`;
 		} catch (e) {
-			lookupNote = `Lookup failed: ${(e as Error).message}`;
+			lookupNote = `Recherche impossible : ${(e as Error).message}`;
 		} finally {
 			looking = false;
 		}
@@ -80,13 +81,13 @@
 				id="isbn"
 				name="isbn"
 				bind:value={$form.isbn}
-				placeholder="Scan or type the ISBN"
+				placeholder="Scannez ou tapez l'ISBN"
 				onkeydown={onIsbnKeydown}
 				class="max-w-xs font-mono"
 			/>
 			{#if showLookup}
 				<Button type="button" variant="secondary" onclick={lookup} disabled={looking}>
-					{looking ? 'Looking up…' : 'Look up'}
+					{looking ? 'Recherche…' : 'Chercher la notice'}
 				</Button>
 			{/if}
 		</div>
@@ -95,25 +96,25 @@
 	</div>
 
 	<div class="space-y-1 md:col-span-2">
-		<Label for="title">Title</Label>
+		<Label for="title">Titre</Label>
 		<Input id="title" name="title" bind:value={$form.title} />
 		{#if $errors.title}<p class="text-sm text-destructive">{$errors.title}</p>{/if}
 	</div>
 
 	<div class="space-y-1">
-		<Label for="authors">Authors</Label>
-		<Input id="authors" name="authors" bind:value={$form.authors} placeholder="Separate with ;" />
+		<Label for="authors">Auteurs</Label>
+		<Input id="authors" name="authors" bind:value={$form.authors} placeholder="Séparés par ;" />
 	</div>
 	<div class="space-y-1">
-		<Label for="publisher">Publisher</Label>
+		<Label for="publisher">Éditeur</Label>
 		<Input id="publisher" name="publisher" bind:value={$form.publisher} />
 	</div>
 	<div class="space-y-1">
-		<Label for="publishedYear">Year</Label>
+		<Label for="publishedYear">Année</Label>
 		<Input id="publishedYear" name="publishedYear" type="number" bind:value={$form.publishedYear} />
 	</div>
 	<div class="space-y-1">
-		<Label for="language">Language</Label>
+		<Label for="language">Langue</Label>
 		<Input id="language" name="language" bind:value={$form.language} placeholder="fr" />
 	</div>
 	<div class="space-y-1">
@@ -121,11 +122,11 @@
 		<Input id="pageCount" name="pageCount" type="number" bind:value={$form.pageCount} />
 	</div>
 	<div class="space-y-1">
-		<Label for="shelf">Shelf</Label>
-		<Input id="shelf" name="shelf" bind:value={$form.shelf} placeholder="e.g. Jeunesse A" />
+		<Label for="shelf">Rayon</Label>
+		<Input id="shelf" name="shelf" bind:value={$form.shelf} placeholder="ex. Jeunesse A" />
 	</div>
 	<div class="space-y-1">
-		<Label for="category">Category</Label>
+		<Label for="category">Catégorie</Label>
 		<select
 			id="category"
 			name="category"
@@ -146,42 +147,42 @@
 			bind:checked={$form.featured}
 			class="size-4"
 		/>
-		<Label for="featured">Coup de cœur (shown first on the public site)</Label>
+		<Label for="featured">Coup de cœur (mis en avant sur le site public)</Label>
 	</div>
 	<div class="space-y-1">
-		<Label for="rfidUid">RFID tag UID</Label>
+		<Label for="rfidUid">Identifiant de la puce RFID</Label>
 		<Input
 			id="rfidUid"
 			name="rfidUid"
 			bind:value={$form.rfidUid}
 			class="font-mono"
-			placeholder="Scan the tag"
+			placeholder="Scannez la puce"
 		/>
 		{#if $errors.rfidUid}<p class="text-sm text-destructive">{$errors.rfidUid}</p>{/if}
 	</div>
 	<div class="space-y-1">
-		<Label for="status">Status</Label>
+		<Label for="status">État</Label>
 		<select
 			id="status"
 			name="status"
 			bind:value={$form.status}
 			class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
 		>
-			<option value="active">In collection</option>
-			<option value="lost">Lost</option>
-			<option value="withdrawn">Withdrawn</option>
+			{#each Object.entries(BOOK_STATUS) as [value, label] (value)}
+				<option {value}>{label}</option>
+			{/each}
 		</select>
 	</div>
 	<div class="space-y-1 md:col-span-2">
-		<Label for="coverUrl">Cover URL</Label>
+		<Label for="coverUrl">URL de la couverture</Label>
 		<Input id="coverUrl" name="coverUrl" bind:value={$form.coverUrl} />
 	</div>
 	<div class="space-y-1 md:col-span-2">
-		<Label for="description">Description</Label>
+		<Label for="description">Résumé</Label>
 		<Textarea id="description" name="description" bind:value={$form.description} rows={4} />
 	</div>
 	<div class="space-y-1 md:col-span-2">
-		<Label for="notes">Internal notes</Label>
+		<Label for="notes">Notes internes</Label>
 		<Textarea id="notes" name="notes" bind:value={$form.notes} rows={2} />
 	</div>
 

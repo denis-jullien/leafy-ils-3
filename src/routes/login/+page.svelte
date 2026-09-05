@@ -16,7 +16,7 @@
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>{LIBRARY_NAME}</Card.Title>
-				<Card.Description>Volunteer sign in</Card.Description>
+				<Card.Description>Connexion des bénévoles</Card.Description>
 			</Card.Header>
 			<Card.Content>
 				<form method="post" use:enhance class="space-y-4" data-no-wedge>
@@ -32,7 +32,7 @@
 						{#if $errors.email}<p class="text-sm text-destructive">{$errors.email}</p>{/if}
 					</div>
 					<div class="space-y-1">
-						<Label for="password">Password</Label>
+						<Label for="password">Mot de passe</Label>
 						<Input
 							id="password"
 							name="password"
@@ -43,7 +43,7 @@
 						{#if $errors.password}<p class="text-sm text-destructive">{$errors.password}</p>{/if}
 					</div>
 					{#if $message}<p class="text-sm text-destructive">{$message}</p>{/if}
-					<Button type="submit" class="w-full" disabled={$submitting}>Sign in</Button>
+					<Button type="submit" class="w-full" disabled={$submitting}>Se connecter</Button>
 				</form>
 			</Card.Content>
 		</Card.Root>

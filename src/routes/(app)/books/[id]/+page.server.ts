@@ -13,7 +13,7 @@ const loadBook = (id: string) => {
 	const book = Number.isInteger(n)
 		? db.select().from(books).where(eq(books.id, n)).get()
 		: undefined;
-	if (!book) error(404, 'Book not found');
+	if (!book) error(404, 'Livre introuvable');
 	return book;
 };
 
@@ -46,19 +46,21 @@ export const actions: Actions = {
 				return setError(
 					form,
 					field,
-					`Already used by "${err.existing.title}" (#${err.existing.id})`
+					`Déjà utilisé par « ${err.existing.title} » (n° ${err.existing.id})`
 				);
 			}
 			if (err instanceof Error) return message(form, err.message, { status: 500 });
 			throw err;
 		}
-		return message(form, 'Saved');
+		return message(form, 'Enregistré');
 	},
 	delete: async (event) => {
 		const book = loadBook(event.params.id);
 		const hasLoans = db.select({ id: loans.id }).from(loans).where(eq(loans.bookId, book.id)).get();
 		if (hasLoans)
-			return fail(409, { error: 'This book has loan history. Mark it withdrawn instead.' });
+			return fail(409, {
+				error: 'Ce livre a un historique de prêts. Marquez-le plutôt comme retiré.'
+			});
 		db.delete(books).where(eq(books.id, book.id)).run();
 		redirect(303, '/books');
 	}

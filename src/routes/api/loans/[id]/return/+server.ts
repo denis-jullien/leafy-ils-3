@@ -13,7 +13,7 @@ export const POST: RequestHandler = ({ params, locals }) => {
 		.from(loans)
 		.where(eq(loans.id, Number(params.id)))
 		.get();
-	if (!loan) return json({ error: 'Loan not found' }, { status: 404 });
+	if (!loan) return json({ error: 'Prêt introuvable' }, { status: 404 });
 	try {
 		return json({ loan: returnBook(db, loan.bookId, locals.user?.id) });
 	} catch (err) {

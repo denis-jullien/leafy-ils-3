@@ -3,15 +3,23 @@
 	import { enhance } from '$app/forms';
 	import { Button } from '$lib/components/ui/button';
 	import { LIBRARY_NAME } from '$lib/config';
-	import { BookOpen, Users, ArrowLeftRight, LayoutDashboard, Shield, LogOut } from '@lucide/svelte';
+	import {
+		BookOpen,
+		Users,
+		ArrowLeftRight,
+		LayoutDashboard,
+		Shield,
+		LogOut,
+		Globe
+	} from '@lucide/svelte';
 
 	let { user }: { user: { name: string; role?: string | null } } = $props();
 
 	const links = [
-		{ href: '/desk', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-		{ href: '/circulation', label: 'Circulation', icon: ArrowLeftRight },
-		{ href: '/books', label: 'Books', icon: BookOpen },
-		{ href: '/families', label: 'Families', icon: Users }
+		{ href: '/desk', label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
+		{ href: '/circulation', label: 'Prêts & retours', icon: ArrowLeftRight },
+		{ href: '/books', label: 'Livres', icon: BookOpen },
+		{ href: '/families', label: 'Familles', icon: Users }
 	];
 
 	const active = (href: string, exact = false) =>
@@ -35,13 +43,17 @@
 					size="sm"
 				>
 					<Shield class="size-4" />
-					Admin
+					Bénévoles
 				</Button>
 			{/if}
 		</nav>
+		<Button href="/" variant="ghost" size="sm" title="Voir le site public">
+			<Globe class="size-4" />
+			<span class="hidden md:inline">Site public</span>
+		</Button>
 		<span class="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
 		<form method="post" action="/logout" use:enhance>
-			<Button type="submit" variant="ghost" size="sm" title="Sign out">
+			<Button type="submit" variant="ghost" size="sm" title="Se déconnecter">
 				<LogOut class="size-4" />
 			</Button>
 		</form>

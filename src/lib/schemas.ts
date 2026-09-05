@@ -3,14 +3,14 @@ import { parseIsbn } from './isbn';
 import { CATEGORY_IDS } from './config';
 
 export const loginSchema = z.object({
-	email: z.email('Enter a valid email'),
-	password: z.string().min(1, 'Password is required')
+	email: z.email('Adresse email invalide'),
+	password: z.string().min(1, 'Le mot de passe est obligatoire')
 });
 
 export const setupSchema = z.object({
-	name: z.string().trim().min(1, 'Name is required'),
-	email: z.email('Enter a valid email'),
-	password: z.string().min(8, 'At least 8 characters')
+	name: z.string().trim().min(1, 'Le nom est obligatoire'),
+	email: z.email('Adresse email invalide'),
+	password: z.string().min(8, 'Au moins 8 caractères')
 });
 
 export const volunteerSchema = setupSchema.extend({
@@ -36,8 +36,8 @@ export const bookSchema = z.object({
 		.transform((s) => (s === '' ? null : s))
 		.nullable()
 		.optional()
-		.refine((s) => s == null || parseIsbn(s) !== null, 'Not a valid ISBN'),
-	title: z.string().trim().min(1, 'Title is required'),
+		.refine((s) => s == null || parseIsbn(s) !== null, 'ISBN invalide'),
+	title: z.string().trim().min(1, 'Le titre est obligatoire'),
 	authors: optionalText,
 	publisher: optionalText,
 	publishedYear: optionalInt,
@@ -56,7 +56,7 @@ export const bookSchema = z.object({
 });
 
 export const familySchema = z.object({
-	name: z.string().trim().min(1, 'Family name is required'),
+	name: z.string().trim().min(1, 'Le nom de la famille est obligatoire'),
 	email: optionalText,
 	phone: optionalText,
 	address: optionalText,
@@ -65,7 +65,7 @@ export const familySchema = z.object({
 });
 
 export const memberSchema = z.object({
-	name: z.string().trim().min(1, 'Name is required'),
+	name: z.string().trim().min(1, 'Le nom est obligatoire'),
 	birthYear: optionalInt,
 	notes: optionalText
 });

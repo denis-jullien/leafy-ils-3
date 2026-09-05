@@ -66,24 +66,24 @@ describe('checkout / return', () => {
 
 		const returned = returnBook(db, book);
 		expect(returned.family.id).toBe(fam);
-		expect(() => returnBook(db, book)).toThrowError(/not on loan/);
+		expect(() => returnBook(db, book)).toThrowError(/pas en prêt/);
 		expect(checkout(db, { familyId: other, bookIds: [book] })).toHaveLength(1);
 	});
 
 	it('is all-or-nothing and enforces the family limit', () => {
 		const fam = addFamily('Petit');
 		const ids = Array.from({ length: MAX_LOANS_PER_FAMILY + 1 }, (_, i) => addBook(`Book ${i}`));
-		expect(() => checkout(db, { familyId: fam, bookIds: ids })).toThrowError(/limit/);
+		expect(() => checkout(db, { familyId: fam, bookIds: ids })).toThrowError(/maximum/);
 		expect(overdueLoans(db, new Date(Date.now() + 365 * 86400_000))).toHaveLength(0);
 	});
 
 	it('refuses inactive families and non-active books', () => {
 		const fam = addFamily('Gone', 'inactive');
 		const book = addBook('Lost one');
-		expect(() => checkout(db, { familyId: fam, bookIds: [book] })).toThrowError(/active/);
+		expect(() => checkout(db, { familyId: fam, bookIds: [book] })).toThrowError(/actif/);
 		const ok = addFamily('Here');
 		db.update(books).set({ status: 'lost' }).run();
-		expect(() => checkout(db, { familyId: ok, bookIds: [book] })).toThrowError(/lost/);
+		expect(() => checkout(db, { familyId: ok, bookIds: [book] })).toThrowError(/perdu/);
 	});
 
 	it('renews once and reports overdue loans', () => {
@@ -94,6 +94,6 @@ describe('checkout / return', () => {
 		expect(overdueLoans(db)).toHaveLength(1);
 		renewLoan(db, loan.id);
 		expect(overdueLoans(db)).toHaveLength(0);
-		expect(() => renewLoan(db, loan.id)).toThrowError(/renewed/);
+		expect(() => renewLoan(db, loan.id)).toThrowError(/prolongé/);
 	});
 });
