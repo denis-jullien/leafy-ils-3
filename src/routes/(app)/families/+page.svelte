@@ -15,7 +15,7 @@
 	</div>
 
 	<form method="get" class="flex gap-2" data-no-wedge>
-		<Input name="q" value={data.q} placeholder="Nom, numéro de carte ou email…" class="max-w-md" />
+		<Input name="q" value={data.q} placeholder="Nom ou email…" class="max-w-md" />
 		<Button type="submit" variant="secondary">Rechercher</Button>
 		{#if data.q}<Button href="/families" variant="ghost">Effacer</Button>{/if}
 	</form>
@@ -24,7 +24,6 @@
 		<Table.Header>
 			<Table.Row>
 				<Table.Head>Famille</Table.Head>
-				<Table.Head>Carte</Table.Head>
 				<Table.Head>Contact</Table.Head>
 				<Table.Head>Livres en prêt</Table.Head>
 				<Table.Head>Abonnement</Table.Head>
@@ -37,7 +36,6 @@
 						><a class="font-medium underline" href="/families/{family.id}">{family.name}</a
 						></Table.Cell
 					>
-					<Table.Cell class="font-mono text-xs">{family.barcode}</Table.Cell>
 					<Table.Cell class="text-sm">{family.phone ?? family.email ?? ''}</Table.Cell>
 					<Table.Cell>{open}</Table.Cell>
 					<Table.Cell>
@@ -48,7 +46,7 @@
 				</Table.Row>
 			{:else}
 				<Table.Row
-					><Table.Cell colspan={5} class="text-muted-foreground"
+					><Table.Cell colspan={4} class="text-muted-foreground"
 						>Aucune famille pour l'instant.</Table.Cell
 					></Table.Row
 				>

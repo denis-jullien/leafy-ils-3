@@ -1,8 +1,8 @@
 # Leafy ILS
 
 A small library system for a village library run by volunteers. Memberships are per
-family, and the whole design serves one moment: a volunteer at the desk scanning a card
-and a pile of books.
+family, and the whole design serves one moment: a volunteer at the desk with a family's
+name and a pile of books.
 
 ## Stack
 
@@ -59,8 +59,9 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 
 ## How the desk works
 
-- **Circulation** page: one input, always ready. Scan a family card (`F000042`) and books
-  in any order, press **Lend**. Scanning a book that is out returns it, whoever brings it.
+- **Circulation** page: one input, always ready. Type a few letters of the family name and
+  pick it, scan the books in any order, press **Prêter**. Scanning a book that is out
+  returns it, whoever brings it.
 - **Barcode scanners** work out of the box: a USB scanner types the code and presses
   Enter. The page also listens for that burst of keystrokes when no field is focused.
 - **RFID readers**: three options, all behind the same `ScanSource` interface in
@@ -74,7 +75,6 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 - **Books** are one row per physical copy. The barcode is the ISBN-13 when there is one,
   else an internal `B000123` label printed from the book page. RFID tag UIDs are stored on
   the book (`rfid_uid`). Duplicates are rejected by unique indexes.
-- **Family cards** print from the family page, credit-card sized, Code 128.
 
 Loan policy lives in `src/lib/config.ts` (21 days, 10 books per family, one renewal).
 

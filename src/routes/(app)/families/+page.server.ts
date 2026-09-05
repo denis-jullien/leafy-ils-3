@@ -13,15 +13,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		})
 		.from(families)
 		.leftJoin(loans, sql`${loans.familyId} = ${families.id} AND ${loans.returnedAt} IS NULL`)
-		.where(
-			q
-				? or(
-						like(families.name, pattern),
-						like(families.barcode, pattern),
-						like(families.email, pattern)
-					)
-				: undefined
-		)
+		.where(q ? or(like(families.name, pattern), like(families.email, pattern)) : undefined)
 		.groupBy(families.id)
 		.orderBy(asc(families.name))
 		.limit(300);

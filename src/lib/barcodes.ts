@@ -1,10 +1,11 @@
 /**
  * Barcode conventions. Everything the volunteer scans lands in one input, so
- * the prefix is what tells a family card from a book label.
+ * the prefix is what tells one kind of code from another.
  *
  *  - Books with an ISBN use the ISBN-13 printed by the publisher (EAN-13).
  *  - Books without one get an internal label: B + 6 digits.
- *  - Family cards: F + 6 digits.
+ *  - Families have an internal code, F + 6 digits. Nobody prints it: the desk
+ *    finds families by name and uses the code behind the scenes.
  *  - RFID tags carry a hex UID; we match those on the rfid_uid column.
  */
 export const FAMILY_PREFIX = 'F';

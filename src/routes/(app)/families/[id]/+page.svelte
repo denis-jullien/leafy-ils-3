@@ -2,7 +2,6 @@
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
 	import FamilyForm from '$lib/components/FamilyForm.svelte';
-	import Barcode from '$lib/components/Barcode.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
@@ -77,16 +76,6 @@
 	</div>
 
 	<div class="space-y-6">
-		<Card.Root>
-			<Card.Header><Card.Title>Carte d'abonné</Card.Title></Card.Header>
-			<Card.Content class="space-y-2">
-				{#if data.family.barcode}<Barcode value={data.family.barcode} />{/if}
-				<Button href="/families/{data.family.id}/card" variant="outline" size="sm" target="_blank"
-					>Imprimer la carte</Button
-				>
-			</Card.Content>
-		</Card.Root>
-
 		<Card.Root>
 			<Card.Header><Card.Title>Membres</Card.Title></Card.Header>
 			<Card.Content class="space-y-3">

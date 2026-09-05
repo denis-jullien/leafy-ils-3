@@ -9,6 +9,7 @@
 	import type { ScanEvent } from '$lib/scan';
 	import type { Resolved } from '$lib/server/circulation';
 	import type { Book } from '$lib/server/db/schema';
+	import type { FamilyHit } from '$lib/server/families';
 	import { fmtDate, isOverdue } from '$lib/format';
 	import { parseIsbn } from '$lib/isbn';
 	import { BOOK_STATUS } from '$lib/labels';
@@ -24,6 +25,12 @@
 	let manual = $state('');
 	let busy = $state(false);
 	let logSeq = 0;
+
+	// Family finder: typing letters in the input searches families by name.
+	let suggestions = $state<FamilyHit[]>([]);
+	let highlighted = $state(0);
+	let searchSeq = 0;
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const scanners = new Scanners();
 
@@ -127,6 +134,59 @@
 		}
 	}
 
+	/** Letters mean a name; digits, ISBNs and labels mean a code. */
+	const looksLikeName = (text: string) => /\p{L}{2,}/u.test(text) && !parseIsbn(text);
+
+	async function searchFamilies(q: string): Promise<FamilyHit[]> {
+		const res = await fetch(`/api/families?q=${encodeURIComponent(q)}`);
+		return res.ok ? res.json() : [];
+	}
+
+	function onManualInput() {
+		const text = manual.trim();
+		if (searchTimer) clearTimeout(searchTimer);
+		if (!looksLikeName(text)) {
+			suggestions = [];
+			return;
+		}
+		const seq = ++searchSeq;
+		searchTimer = setTimeout(async () => {
+			const hits = await searchFamilies(text);
+			if (seq !== searchSeq) return; // a newer keystroke won
+			suggestions = hits;
+			highlighted = 0;
+		}, 120);
+	}
+
+	function clearSearch() {
+		searchSeq++;
+		suggestions = [];
+		manual = '';
+	}
+
+	async function selectFamily(hit: FamilyHit) {
+		clearSearch();
+		if (!hit.barcode) return;
+		await handleCode(hit.barcode);
+	}
+
+	/** Enter on a name: pick the highlighted match, or search now if the list is not up yet. */
+	async function submitName(text: string) {
+		if (suggestions.length > 0) {
+			await selectFamily(suggestions[highlighted] ?? suggestions[0]);
+			return;
+		}
+		const hits = await searchFamilies(text);
+		if (hits.length === 1) await selectFamily(hits[0]);
+		else if (hits.length > 1) {
+			suggestions = hits;
+			highlighted = 0;
+		} else {
+			clearSearch();
+			say('err', `Aucune famille ne correspond à « ${text} »`);
+		}
+	}
+
 	function finish() {
 		family = null;
 		basket = [];
@@ -134,11 +194,24 @@
 	}
 
 	function onManualKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
+		if (e.key === 'ArrowDown' && suggestions.length) {
 			e.preventDefault();
-			const code = manual;
-			manual = '';
-			void handleCode(code);
+			highlighted = (highlighted + 1) % suggestions.length;
+		} else if (e.key === 'ArrowUp' && suggestions.length) {
+			e.preventDefault();
+			highlighted = (highlighted - 1 + suggestions.length) % suggestions.length;
+		} else if (e.key === 'Escape') {
+			clearSearch();
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			const text = manual.trim();
+			if (!text) return;
+			if (looksLikeName(text)) {
+				void submitName(text);
+			} else {
+				clearSearch();
+				void handleCode(text);
+			}
 		}
 	}
 
@@ -153,19 +226,57 @@
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h1 class="text-2xl font-semibold">Prêts &amp; retours</h1>
 		<p class="text-sm text-muted-foreground">
-			Scannez une carte de famille et des livres, dans n'importe quel ordre. Scanner un livre en
+			Tapez le nom de la famille, scannez les livres, dans n'importe quel ordre. Scanner un livre en
 			prêt le fait revenir.
 		</p>
 	</div>
 
-	<Input
-		bind:value={manual}
-		onkeydown={onManualKeydown}
-		placeholder="Scannez ici, ou tapez un numéro de carte / ISBN puis Entrée"
-		class="h-12 text-lg"
-		autofocus
-		data-no-wedge
-	/>
+	<div class="relative">
+		<Input
+			bind:value={manual}
+			oninput={onManualInput}
+			onkeydown={onManualKeydown}
+			placeholder="Nom de la famille, ou scannez un livre ici"
+			class="h-12 text-lg"
+			autofocus
+			autocomplete="off"
+			role="combobox"
+			aria-expanded={suggestions.length > 0}
+			aria-controls="family-suggestions"
+			data-no-wedge
+		/>
+		{#if suggestions.length > 0}
+			<ul
+				id="family-suggestions"
+				role="listbox"
+				class="absolute z-20 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md"
+			>
+				{#each suggestions as hit, i (hit.id)}
+					<li role="option" aria-selected={i === highlighted}>
+						<button
+							type="button"
+							class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-accent {i ===
+							highlighted
+								? 'bg-accent'
+								: ''}"
+							onmousedown={(e) => e.preventDefault()}
+							onclick={() => selectFamily(hit)}
+						>
+							<span>
+								<span class="font-medium">{hit.name}</span>
+								{#if hit.phone}<span class="ml-2 text-sm text-muted-foreground">{hit.phone}</span
+									>{/if}
+								{#if hit.status !== 'active'}<Badge variant="destructive" class="ml-2"
+										>inactif</Badge
+									>{/if}
+							</span>
+							<span class="text-sm text-muted-foreground">{hit.openCount} en prêt</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 
 	<div class="grid gap-4 lg:grid-cols-3">
 		<Card.Root class="lg:col-span-1">
@@ -198,7 +309,7 @@
 						<Button variant="ghost" size="sm" onclick={finish}>Famille suivante</Button>
 					</div>
 				{:else}
-					<p class="text-sm text-muted-foreground">Scannez une carte d'abonné.</p>
+					<p class="text-sm text-muted-foreground">Tapez le nom de la famille ci-dessus.</p>
 				{/if}
 			</Card.Content>
 		</Card.Root>

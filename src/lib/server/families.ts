@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq, like, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { Db } from './db/client';
-import { families, type Family } from './db/schema';
+import { families, loans, type Family } from './db/schema';
 import { familyBarcode } from '$lib/barcodes';
 import type { familySchema } from '$lib/schemas';
 
@@ -21,4 +21,35 @@ export function createFamily(db: Db, input: FamilyInput): Family {
 
 export function updateFamily(db: Db, id: number, input: FamilyInput): Family {
 	return db.update(families).set(input).where(eq(families.id, id)).returning().get();
+}
+
+export interface FamilyHit {
+	id: number;
+	name: string;
+	barcode: string | null;
+	phone: string | null;
+	status: Family['status'];
+	openCount: number;
+}
+
+/** Name search for the circulation screen: "dup" finds "Famille Dupont". */
+export function searchFamilies(db: Db, q: string, limit = 8): FamilyHit[] {
+	const term = q.trim();
+	if (!term) return [];
+	return db
+		.select({
+			id: families.id,
+			name: families.name,
+			barcode: families.barcode,
+			phone: families.phone,
+			status: families.status,
+			openCount: sql<number>`count(${loans.id})`
+		})
+		.from(families)
+		.leftJoin(loans, sql`${loans.familyId} = ${families.id} AND ${loans.returnedAt} IS NULL`)
+		.where(like(families.name, `%${term}%`))
+		.groupBy(families.id)
+		.orderBy(asc(families.name))
+		.limit(limit)
+		.all();
 }
