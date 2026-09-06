@@ -43,7 +43,7 @@
 
 <section class="section" id="livre">
 	<div class="wrap">
-		<a class="back-link" href="/#nouveautes">← Retour au catalogue</a>
+		<a class="back-link" href="/catalogue">← Retour au catalogue</a>
 
 		<div class="detail">
 			<div class="detail-cover book" class:is-out={!book.available}>
@@ -69,7 +69,7 @@
 				{#if authors.length}
 					<p class="detail-authors">
 						{#each authors as a, i (a)}{#if i > 0},
-							{/if}<a href="/?q={encodeURIComponent(a)}#nouveautes">{a}</a>{/each}
+							{/if}<a href="/catalogue?q={encodeURIComponent(a)}">{a}</a>{/each}
 					</p>
 				{/if}
 

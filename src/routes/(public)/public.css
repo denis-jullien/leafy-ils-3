@@ -195,6 +195,17 @@ html {
 		gap: 2rem 3rem;
 		align-items: center;
 	}
+	.sb-back {
+		display: inline-block;
+		margin-bottom: 0.6rem;
+		font-size: 0.9rem;
+		font-weight: 800;
+		color: #f4fbf9;
+		text-decoration: none;
+	}
+	.sb-back:hover {
+		text-decoration: underline;
+	}
 	.sb-title {
 		font-size: clamp(1.7rem, 3.4vw, 2.3rem);
 		margin: 0 0 0.4rem;

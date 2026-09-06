@@ -7,8 +7,6 @@
 
 	let { data } = $props();
 
-	const n = $derived(data.books.length);
-	const plural = $derived(n > 1 ? 's' : '');
 	const [leadBefore, leadAfter] = $derived(MEMBERSHIP.lead.split(MEMBERSHIP.highlight));
 </script>
 
@@ -27,49 +25,36 @@
 			<h1 class="sb-title">Chercher un livre</h1>
 			<p class="sb-lead">Tapez un titre ou un nom d'auteur — même quelques lettres suffisent.</p>
 		</div>
-		<form class="sb-form" method="get" action="/#nouveautes" data-no-wedge>
+		<form class="sb-form" method="get" action="/catalogue" data-no-wedge>
 			<label class="sb-label" for="q">Titre ou auteur</label>
 			<div class="sb-row">
 				<input
 					id="q"
 					name="q"
 					type="search"
-					value={data.q}
 					placeholder="Exemple : jardin, ou Ferrand"
 					autocomplete="off"
 				/>
-				{#if data.rayon}<input type="hidden" name="rayon" value={data.rayon} />{/if}
 				<button class="sb-btn" type="submit">Rechercher</button>
 			</div>
 		</form>
 	</div>
 </section>
 
-<!-- ——— Books: volunteers' picks, or search results ——— -->
+<!-- ——— Books: volunteers' picks ——— -->
 <section class="section section-alt" id="nouveautes">
 	<div class="wrap">
 		<div class="section-head">
 			<div>
-				<span class="kicker kicker-1"
-					>{data.searching ? 'Dans notre catalogue' : 'La sélection des bénévoles'}</span
-				>
-				<h2 class="section-title">{data.searching ? 'Résultats' : 'Coups de cœur'}</h2>
+				<span class="kicker kicker-1">La sélection des bénévoles</span>
+				<h2 class="section-title">Coups de cœur</h2>
 			</div>
-			<p class="section-note">{n} ouvrage{plural} affiché{plural}</p>
+			<a class="section-link" href="/catalogue">Tout le catalogue →</a>
 		</div>
 
-		{#if n === 0}
+		{#if data.books.length === 0}
 			<div class="empty">
-				{#if data.searching || data.rayon}
-					<p>Aucun ouvrage ne correspond à votre recherche.</p>
-					<a class="btn-ghost" href="/#nouveautes">Réinitialiser</a>
-				{:else}
-					<p>Le catalogue en ligne arrive bientôt. Passez nous voir !</p>
-				{/if}
-			</div>
-		{:else if data.searching}
-			<div class="book-grid">
-				{#each data.books as book (book.id)}<BookCard {book} />{/each}
+				<p>Le catalogue en ligne arrive bientôt. Passez nous voir !</p>
 			</div>
 		{:else}
 			<div class="book-row">

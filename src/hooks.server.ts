@@ -16,6 +16,7 @@ export const init: ServerInit = async () => {
 /** Paths reachable without a session. Everything else needs a logged-in volunteer. */
 const PUBLIC = [
 	/^\/$/,
+	/^\/catalogue$/,
 	/^\/livre\/[^/]+$/,
 	/^\/covers\/\d+$/,
 	/^\/login$/,

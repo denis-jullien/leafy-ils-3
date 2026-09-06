@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { featuredBooks, searchCatalogue } from '$lib/server/catalogue';
+import { featuredBooks } from '$lib/server/catalogue';
 import { TIMEZONE } from '$lib/config';
 import { pastEvents, upcomingEvents } from '$lib/server/events';
 
@@ -15,15 +15,10 @@ function today(now = new Date()) {
 	return { idx: WEEKDAYS.indexOf(weekday), iso };
 }
 
-export const load: PageServerLoad = ({ url }) => {
-	const q = url.searchParams.get('q')?.trim() ?? '';
-	const rayon = Number(url.searchParams.get('rayon')) || null;
+export const load: PageServerLoad = () => {
 	const t = today();
 	return {
-		q,
-		rayon,
-		searching: q.length > 0,
-		books: q ? searchCatalogue(db, { q, shelfId: rayon }) : featuredBooks(db, rayon),
+		books: featuredBooks(db),
 		events: upcomingEvents(db, t.iso),
 		pastEvents: pastEvents(db, t.iso),
 		todayIdx: t.idx
