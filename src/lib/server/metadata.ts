@@ -218,7 +218,37 @@ export async function verifyCover(url: string, signal: AbortSignal): Promise<boo
 	}
 }
 
-/** Last resort: Google Custom Search images, when GOOGLE_CSE_KEY and GOOGLE_CSE_ID are set. */
+/**
+ * Web image search, last resort. Two providers, both optional:
+ *  - Brave Search API (BRAVE_SEARCH_KEY): open to anyone, free tier.
+ *  - Google Custom Search JSON API (GOOGLE_CSE_KEY + GOOGLE_CSE_ID): closed to new
+ *    customers since 2025, kept for those who already have access.
+ */
+async function braveImageCovers(
+	isbn13: string,
+	signal: AbortSignal
+): Promise<{ url: string; source: string }[]> {
+	if (!env.BRAVE_SEARCH_KEY) return [];
+	const res = await get(
+		`https://api.search.brave.com/res/v1/images/search?q=${isbn13}&count=6&country=FR&search_lang=fr&safesearch=strict`,
+		signal,
+		{ Accept: 'application/json', 'X-Subscription-Token': env.BRAVE_SEARCH_KEY }
+	);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const json = (await res.json()) as {
+		results?: { url?: string; properties?: { url?: string }; thumbnail?: { src?: string } }[];
+	};
+	const out: { url: string; source: string }[] = [];
+	for (const r of json.results ?? []) {
+		// properties.url is the full-size image on the page; the thumbnail is Brave's cached copy.
+		for (const u of [r.properties?.url, r.thumbnail?.src]) {
+			if (u && /^https?:/.test(u) && !/no-?image/i.test(u)) out.push({ url: u, source: 'brave' });
+		}
+	}
+	return out;
+}
+
+/** Google Custom Search images, when GOOGLE_CSE_KEY and GOOGLE_CSE_ID are set. */
 async function googleImageCovers(
 	isbn13: string,
 	signal: AbortSignal
@@ -308,10 +338,15 @@ export async function lookupIsbn(
 		{ url: googleCoverUrl(isbn13, 2), source: 'google' },
 		{ url: googleCoverUrl(isbn13, 1), source: 'google' }
 	);
-	try {
-		candidates.push(...(await withTimeout((s) => googleImageCovers(isbn13, s))));
-	} catch (err) {
-		console.warn(`[isbn] googleimages failed for ${isbn13}:`, (err as Error).message);
+	for (const [name, fn] of [
+		['brave', braveImageCovers],
+		['googleimages', googleImageCovers]
+	] as const) {
+		try {
+			candidates.push(...(await withTimeout((s) => fn(isbn13, s))));
+		} catch (err) {
+			console.warn(`[isbn] ${name} failed for ${isbn13}:`, (err as Error).message);
+		}
 	}
 	let cover: { url: string; source: string } | undefined;
 	for (const c of candidates) {

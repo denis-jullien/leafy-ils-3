@@ -85,9 +85,11 @@ answers, the first one winning per field: BnF (UNIMARC through SRU, with the sum
 a cover keyed by the record's ARK), Sudoc (UNIMARC, links to the BnF record), Google Books
 and Open Library. Cover candidates are fetched and checked: not an image, smaller than
 100 px, or a known placeholder means rejected. Google Books' key-free cover address is tried
-too, with its placeholder images filtered out. `GOOGLE_CSE_KEY` and `GOOGLE_CSE_ID` add
-Google Images as a last resort (see `.env.example` for the two-step setup); without them the
-form offers a "Chercher sur Google Images" link and a field to paste the image address.
+too, with its placeholder images filtered out. A web image search by ISBN is the last
+resort: `BRAVE_SEARCH_KEY` (Brave Search API, free tier) or, for those who still have
+access, Google's Custom Search JSON API (`GOOGLE_CSE_KEY` + `GOOGLE_CSE_ID`, closed to new
+customers). Without a key the form offers a "Chercher sur Google Images" link and a field to
+paste the image address.
 
 On the desk, **Chercher la notice** fills the empty fields of a book form, and the books
 list has **Chercher les couvertures manquantes**, which processes ten books per click.
