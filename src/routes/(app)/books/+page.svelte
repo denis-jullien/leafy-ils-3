@@ -54,6 +54,28 @@
 					</Button>
 				</form>
 			{/if}
+			{#if data.externalCovers > 0}
+				<form
+					method="post"
+					action="?/importCovers"
+					use:enhance={() => {
+						filling = true;
+						return async ({ result, update }) => {
+							filling = false;
+							if (result.type === 'success')
+								toast.success(String((result.data as { covers?: string })?.covers ?? 'Terminé'));
+							else toast.error('Le rapatriement a échoué.');
+							await update();
+						};
+					}}
+				>
+					<Button type="submit" variant="outline" disabled={filling}>
+						{filling
+							? 'Rapatriement…'
+							: `Rapatrier les couvertures externes (${data.externalCovers})`}
+					</Button>
+				</form>
+			{/if}
 			<Button href="/shelves" variant="outline">Rayons</Button>
 			<Button href="/books/new">Ajouter un livre</Button>
 		</div>

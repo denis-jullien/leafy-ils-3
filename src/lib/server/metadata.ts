@@ -165,6 +165,28 @@ const MIN_COVER_PX = 100;
 /** Sizes known to be "no cover" placeholders: BnF's grey book, Open Library's 1×1 gif. */
 const PLACEHOLDER_SIZES = new Set(['92x138', '1x1']);
 
+/**
+ * Verified cover bytes are kept for a few minutes so that saving the book right
+ * after the lookup does not download the image a second time.
+ */
+const recentCovers = new Map<string, { bytes: Uint8Array; at: number }>();
+const RECENT_TTL_MS = 10 * 60 * 1000;
+const RECENT_MAX = 50;
+
+export function takeCachedCover(url: string): Uint8Array | null {
+	const hit = recentCovers.get(url);
+	if (!hit) return null;
+	recentCovers.delete(url);
+	return Date.now() - hit.at < RECENT_TTL_MS ? hit.bytes : null;
+}
+
+function rememberCover(url: string, bytes: Uint8Array) {
+	const now = Date.now();
+	for (const [k, v] of recentCovers) if (now - v.at > RECENT_TTL_MS) recentCovers.delete(k);
+	if (recentCovers.size >= RECENT_MAX) recentCovers.delete(recentCovers.keys().next().value!);
+	recentCovers.set(url, { bytes, at: now });
+}
+
 /** Fetch the image and accept it only if it decodes to a real cover. */
 export async function verifyCover(url: string, signal: AbortSignal): Promise<boolean> {
 	try {
@@ -174,7 +196,9 @@ export async function verifyCover(url: string, signal: AbortSignal): Promise<boo
 		const size = imageSize(buf);
 		if (!size) return false;
 		if (PLACEHOLDER_SIZES.has(`${size.width}x${size.height}`)) return false;
-		return size.width >= MIN_COVER_PX && size.height >= MIN_COVER_PX;
+		const ok = size.width >= MIN_COVER_PX && size.height >= MIN_COVER_PX;
+		if (ok) rememberCover(url, buf);
+		return ok;
 	} catch {
 		return false;
 	}

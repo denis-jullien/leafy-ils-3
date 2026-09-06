@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { blob, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export * from './auth.schema';
 
@@ -99,6 +99,27 @@ export const books = sqliteTable(
 	(t) => [index('books_title_idx').on(t.title), index('books_shelf_idx').on(t.shelfId)]
 );
 
+/**
+ * Cover images, normalised to WebP at a bounded size whatever the source, and
+ * stored here so backups and the public site never depend on another server.
+ */
+export const covers = sqliteTable('covers', {
+	bookId: integer('book_id')
+		.primaryKey()
+		.references(() => books.id, { onDelete: 'cascade' }),
+	mime: text('mime').notNull(),
+	bytes: blob('bytes', { mode: 'buffer' }).notNull(),
+	width: integer('width').notNull(),
+	height: integer('height').notNull(),
+	/** Where it came from: bnf, openlibrary, google, upload, url… */
+	source: text('source'),
+	/** Content hash, used as the ETag and cache-busting version. */
+	hash: text('hash').notNull(),
+	updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+		.notNull()
+		.$defaultFn(() => new Date())
+});
+
 export const loans = sqliteTable(
 	'loans',
 	{
@@ -156,3 +177,4 @@ export type Book = typeof books.$inferSelect;
 export type NewBook = typeof books.$inferInsert;
 export type Loan = typeof loans.$inferSelect;
 export type Event = typeof events.$inferSelect;
+export type Cover = typeof covers.$inferSelect;

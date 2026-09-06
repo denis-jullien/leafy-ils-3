@@ -17,7 +17,6 @@
 	const {
 		form,
 		errors,
-		message,
 		enhance: createEnhance,
 		submitting
 	} = superForm(data.form, formToasts({ reset: true }));

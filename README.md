@@ -90,6 +90,18 @@ Google image search as a last resort.
 On the desk, **Chercher la notice** fills the empty fields of a book form, and the books
 list has **Chercher les couvertures manquantes**, which processes ten books per click.
 
+### Cover storage
+
+Covers are stored in the database (`covers` table), not hotlinked. Whatever the source, a
+photo from a phone, a file, or an image found by the lookup, the server decodes it,
+honours its rotation, fits it in 600×900 and re-encodes it as WebP at quality 80
+(`src/lib/server/cover-store.ts`; the format is a one-line constant, AVIF is the other
+option). They are served at `/covers/<id>?v=<hash>` with a one-year immutable cache and an
+ETag. The book form lets a volunteer upload or replace a cover (the browser shrinks big
+photos first) or remove it; an image address found online is brought in at save time. The
+books list has **Rapatrier les couvertures externes** for books that still point elsewhere.
+Litestream replicates the database file, so covers are in the backups.
+
 ## Rayons and automatic shelving
 
 A rayon is both where a book sits and how the public site groups it. The list is edited
@@ -128,7 +140,7 @@ shelf, category, coup de cœur and state for books, phone and membership for fam
 
 ```sh
 fly launch --no-deploy --copy-config     # uses fly.toml, pick your app name and region
-fly volumes create data --size 1 --region cdg
+fly volumes create data --size 3 --region cdg   # covers live in the database too
 fly secrets set BETTER_AUTH_SECRET="$(openssl rand -base64 32)" ORIGIN="https://<app>.fly.dev"
 # optional, strongly recommended: Litestream to Cloudflare R2 or Backblaze B2
 fly secrets set LITESTREAM_REPLICA_URL="s3://<bucket>/library" \

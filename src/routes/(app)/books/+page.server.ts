@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { books, loans, shelves } from '$lib/server/db/schema';
 import { parseIsbn } from '$lib/isbn';
-import { fillMissingCovers } from '$lib/server/covers';
+import { countExternalCovers, fillMissingCovers, importExternalCovers } from '$lib/server/covers';
 import { listShelves } from '$lib/server/shelves';
 import { PAGE_SIZE, parseListing } from '$lib/listing';
 import { ETAT_OPTIONS } from '$lib/labels';
@@ -102,6 +102,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		rows,
 		total,
 		missingCovers,
+		externalCovers: countExternalCovers(db),
 		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name }))
 	};
 };
@@ -112,6 +113,13 @@ export const actions: Actions = {
 		const r = await fillMissingCovers(db, 10);
 		return {
 			covers: `${r.filled} couverture(s) trouvée(s) sur ${r.tried} livre(s) examiné(s)${r.remaining ? `, ${r.remaining} restant(s)` : ''}.`
+		};
+	},
+	/** Bring covers still pointing at other sites into the store. */
+	importCovers: async () => {
+		const r = await importExternalCovers(db, 10);
+		return {
+			covers: `${r.filled} couverture(s) rapatriée(s) sur ${r.tried}${r.remaining ? `, ${r.remaining} restante(s)` : ''}.`
 		};
 	}
 };

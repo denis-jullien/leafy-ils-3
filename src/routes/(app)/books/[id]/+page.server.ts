@@ -6,6 +6,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { books, families, loans } from '$lib/server/db/schema';
 import { DuplicateBookError, updateBook } from '$lib/server/books';
+import { applyCoverFromForm } from '$lib/server/book-cover-actions';
+import { CoverError } from '$lib/server/cover-store';
 import { bookSchema } from '$lib/schemas';
 import { listShelves } from '$lib/server/shelves';
 
@@ -37,7 +39,8 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions: Actions = {
 	save: async (event) => {
 		const book = loadBook(event.params.id);
-		const form = await superValidate(event, zod4(bookSchema));
+		const fd = await event.request.formData();
+		const form = await superValidate(fd, zod4(bookSchema));
 		if (!form.valid) return fail(400, { form });
 		try {
 			updateBook(db, book.id, form.data);
@@ -52,7 +55,17 @@ export const actions: Actions = {
 			if (err instanceof Error) return message(form, err.message, { status: 500 });
 			throw err;
 		}
-		return message(form, 'Enregistré');
+		let coverNote: string | null;
+		try {
+			coverNote = await applyCoverFromForm(db, book.id, fd, form.data.coverUrl);
+		} catch (err) {
+			if (!(err instanceof CoverError)) throw err;
+			return message(form, err.message, { status: 400 });
+		}
+		// Reflect the stored cover in the form the client keeps.
+		const fresh = loadBook(event.params.id);
+		form.data.coverUrl = fresh.coverUrl ?? '';
+		return message(form, coverNote ? `Enregistré · ${coverNote}` : 'Enregistré');
 	},
 	delete: async (event) => {
 		const book = loadBook(event.params.id);

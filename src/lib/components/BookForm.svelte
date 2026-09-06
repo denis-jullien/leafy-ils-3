@@ -12,6 +12,7 @@
 	import { localModel } from '$lib/embed/local-model.svelte';
 	import { confidenceLabel, proposeShelfLocally } from '$lib/embed/classify';
 	import { toast } from '$lib/toast';
+	import { downscaleImage } from '$lib/image-client';
 
 	type Data = z.infer<typeof bookSchema>;
 	let {
@@ -35,6 +36,33 @@
 
 	// svelte-ignore state_referenced_locally
 	const { form, errors, enhance, submitting } = sf;
+
+	// Cover picked on this device: previewed locally, shrunk before upload.
+	let coverFile: File | null = $state(null);
+	let coverPreview = $state('');
+	let coverInput: HTMLInputElement | undefined = $state();
+	async function onCoverPicked(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const original = input.files?.[0] ?? null;
+		if (!original) return clearPicked();
+		const small = await downscaleImage(original);
+		if (small !== original) {
+			// Put the shrunk file back into the input so the form posts that one.
+			const dt = new DataTransfer();
+			dt.items.add(small);
+			input.files = dt.files;
+		}
+		coverFile = small;
+		if (coverPreview) URL.revokeObjectURL(coverPreview);
+		coverPreview = URL.createObjectURL(small);
+	}
+	function clearPicked() {
+		coverFile = null;
+		if (coverPreview) URL.revokeObjectURL(coverPreview);
+		coverPreview = '';
+		if (coverInput) coverInput.value = '';
+	}
+	const isExternal = $derived(/^https?:\/\//i.test($form.coverUrl ?? ''));
 
 	let looking = $state(false);
 	let lookupNote = $state('');
@@ -138,6 +166,7 @@
 <form
 	method="post"
 	{action}
+	enctype="multipart/form-data"
 	use:enhance
 	class="grid grid-cols-6 gap-x-3 gap-y-4 md:grid-cols-12"
 	data-no-wedge
@@ -260,12 +289,48 @@
 		</select>
 	</div>
 	<div class="col-span-6 space-y-1 md:col-span-9">
-		<Label for="coverUrl">Couverture (URL)</Label>
+		<Label for="coverFile">Couverture</Label>
 		<div class="flex items-start gap-3">
-			{#if $form.coverUrl}
-				<img src={$form.coverUrl} alt="" class="h-16 w-11 flex-none rounded border object-cover" />
+			{#if coverPreview}
+				<img src={coverPreview} alt="" class="h-20 w-14 flex-none rounded border object-cover" />
+			{:else if $form.coverUrl}
+				<img src={$form.coverUrl} alt="" class="h-20 w-14 flex-none rounded border object-cover" />
 			{/if}
-			<Input id="coverUrl" name="coverUrl" bind:value={$form.coverUrl} />
+			<div class="min-w-0 flex-1 space-y-1">
+				<input
+					id="coverFile"
+					name="coverFile"
+					type="file"
+					accept="image/*"
+					bind:this={coverInput}
+					onchange={onCoverPicked}
+					class="block w-full text-sm file:mr-3 file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-semibold"
+				/>
+				<p class="text-xs text-muted-foreground">
+					{#if coverFile}
+						{coverFile.name} · {Math.round(coverFile.size / 1024)} Ko, remplacera la couverture.
+						<button type="button" class="underline" onclick={clearPicked}>Annuler</button>
+					{:else if isExternal}
+						Image trouvée en ligne : elle sera rapatriée et stockée à l'enregistrement.
+					{:else if $form.coverUrl}
+						Stockée ici, en WebP.
+						<label class="ml-2 inline-flex items-center gap-1"
+							><input type="checkbox" name="removeCover" class="size-3.5" /> retirer</label
+						>
+					{:else}
+						Photo ou fichier ; l'image est réduite et convertie automatiquement.
+					{/if}
+				</p>
+				<details class="text-xs text-muted-foreground">
+					<summary class="cursor-pointer">Adresse d'une image en ligne</summary>
+					<Input
+						name="coverUrl"
+						bind:value={$form.coverUrl}
+						class="mt-1 h-8 text-xs"
+						placeholder="https://…"
+					/>
+				</details>
+			</div>
 		</div>
 	</div>
 

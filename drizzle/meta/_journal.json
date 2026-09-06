@@ -43,6 +43,13 @@
       "when": 1788693332161,
       "tag": "0005_shelf_description",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788702601296,
+      "tag": "0006_covers",
+      "breakpoints": true
     }
   ]
 }

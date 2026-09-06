@@ -17,6 +17,7 @@ export const init: ServerInit = async () => {
 const PUBLIC = [
 	/^\/$/,
 	/^\/livre\/[^/]+$/,
+	/^\/covers\/\d+$/,
 	/^\/login$/,
 	/^\/setup$/,
 	/^\/api\/auth(\/|$)/,
