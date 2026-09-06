@@ -174,15 +174,15 @@ export function getPublicBook(db: Db, id: number): PublicBookDetail | null {
 	return { ...toPublic(rest), description, pageCount, language, isbn13, dueAt: row.dueAt };
 }
 
-/** The welcome rail: volunteers' picks first, then the newest arrivals. */
+/** The welcome rail: the volunteers' picks and nothing else, newest pick first. */
 export function featuredBooks(db: Db, shelfId: number | null = null, limit = 12): PublicBook[] {
 	return db
 		.select(publicColumns)
 		.from(books)
 		.leftJoin(loans, onLoanJoin)
 		.leftJoin(shelves, eq(shelves.id, books.shelfId))
-		.where(and(eq(books.status, 'active'), shelfFilter(shelfId)))
-		.orderBy(desc(books.featured), desc(books.createdAt))
+		.where(and(eq(books.status, 'active'), eq(books.featured, true), shelfFilter(shelfId)))
+		.orderBy(desc(books.updatedAt), desc(books.createdAt))
 		.limit(limit)
 		.all()
 		.map(toPublic);

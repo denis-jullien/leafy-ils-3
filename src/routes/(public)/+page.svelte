@@ -54,7 +54,8 @@
 
 		{#if data.books.length === 0}
 			<div class="empty">
-				<p>Le catalogue en ligne arrive bientôt. Passez nous voir !</p>
+				<p>Les coups de cœur des bénévoles arrivent bientôt.</p>
+				<a class="btn-ghost" href="/catalogue">Parcourir le catalogue</a>
 			</div>
 		{:else}
 			<div class="book-row">
