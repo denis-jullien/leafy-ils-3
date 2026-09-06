@@ -91,13 +91,13 @@
 </section>
 
 <!-- ——— Events ——— -->
-{#if data.events.length > 0}
+{#if data.events.length > 0 || data.pastEvents.length > 0}
 	<section class="section" id="evenements">
 		<div class="wrap">
 			<div class="section-head">
 				<div>
 					<span class="kicker kicker-2">Le programme</span>
-					<h2 class="section-title">Prochains événements</h2>
+					<h2 class="section-title">Événements</h2>
 				</div>
 				<a
 					class="section-link"
@@ -106,9 +106,19 @@
 					)}">Recevoir l'agenda →</a
 				>
 			</div>
-			<div class="event-list">
-				{#each data.events as event (event.id)}<EventCard {event} />{/each}
-			</div>
+			{#if data.events.length > 0}
+				<div class="event-list">
+					{#each data.events as event (event.id)}<EventCard {event} />{/each}
+				</div>
+			{:else}
+				<p class="section-note">Rien de programmé pour le moment. Revenez bientôt !</p>
+			{/if}
+			{#if data.pastEvents.length > 0}
+				<h3 class="subsection-title">Ce qui s'est passé</h3>
+				<div class="event-list">
+					{#each data.pastEvents as event (event.id)}<EventCard {event} past />{/each}
+				</div>
+			{/if}
 		</div>
 	</section>
 {/if}

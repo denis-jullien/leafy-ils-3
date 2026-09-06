@@ -1,4 +1,4 @@
-import { asc, desc, eq, gte } from 'drizzle-orm';
+import { asc, desc, eq, gte, lt } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { Db } from './db/client';
 import { events, type Event } from './db/schema';
@@ -35,6 +35,18 @@ export function upcomingEvents(db: Db, from = todayIso(), limit = 4): DecoratedE
 		.from(events)
 		.where(gte(events.date, from))
 		.orderBy(asc(events.date), asc(events.time))
+		.limit(limit)
+		.all()
+		.map(decorateEvent);
+}
+
+/** The last few events that already took place, most recent first: what happened. */
+export function pastEvents(db: Db, before = todayIso(), limit = 3): DecoratedEvent[] {
+	return db
+		.select()
+		.from(events)
+		.where(lt(events.date, before))
+		.orderBy(desc(events.date), desc(events.time))
 		.limit(limit)
 		.all()
 		.map(decorateEvent);

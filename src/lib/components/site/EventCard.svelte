@@ -11,10 +11,10 @@
 			free: boolean;
 		};
 	}
-	let { event }: Props = $props();
+	let { event, past = false }: Props & { past?: boolean } = $props();
 </script>
 
-<article class="event">
+<article class="event" class:event-past={past}>
 	<div class="event-date">
 		<span class="ed-day">{event.day}</span>
 		<span class="ed-month">{event.month}</span>

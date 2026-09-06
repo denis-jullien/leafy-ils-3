@@ -562,6 +562,23 @@ html {
 		box-shadow: 0 16px 34px -24px rgba(0, 0, 0, 0.5);
 		border-color: color-mix(in srgb, var(--c-secondary) 50%, var(--line));
 	}
+	.subsection-title {
+		font-family: var(--font-display), sans-serif;
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: var(--muted);
+		margin: 2rem 0 0.9rem;
+	}
+	.event-past {
+		opacity: 0.72;
+	}
+	.event-past .event-date {
+		background: color-mix(in srgb, var(--muted) 14%, var(--surface));
+	}
+	.event-past .ed-day,
+	.event-past .ed-month {
+		color: var(--muted);
+	}
 	.event-date {
 		width: 64px;
 		height: 64px;

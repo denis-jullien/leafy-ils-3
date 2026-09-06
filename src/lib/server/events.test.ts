@@ -6,6 +6,7 @@ import {
 	decorateEvent,
 	deleteEvent,
 	listEvents,
+	pastEvents,
 	upcomingEvents,
 	updateEvent
 } from './events';
@@ -28,6 +29,7 @@ describe('events', () => {
 		createEvent(db, { date: '2026-06-11', title: 'Passé', free: true });
 		const up = upcomingEvents(db, '2026-09-05');
 		expect(up.map((e) => e.title)).toEqual(['Heure du conte', 'Rencontre']);
+		expect(pastEvents(db, '2026-09-05').map((e) => e.title)).toEqual(['Passé']);
 		expect(listEvents(db)).toHaveLength(3);
 	});
 

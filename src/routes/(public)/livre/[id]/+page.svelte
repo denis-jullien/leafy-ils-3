@@ -107,7 +107,7 @@
 					{book.available
 						? "Passez nous voir aux heures d'ouverture : premier arrivé, premier servi."
 						: 'Repassez après cette date, ou demandez aux bénévoles de vous prévenir.'}
-					<a href="/#infos">Horaires &amp; accès →</a>
+					<a href="/#infos">Infos pratiques →</a>
 				</p>
 			</div>
 		</div>

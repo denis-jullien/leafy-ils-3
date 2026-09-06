@@ -10,9 +10,9 @@
 			: { href: '/login', label: 'Espace bénévoles' }
 	);
 	const links = [
-		{ href: '/#nouveautes', label: 'Nos livres' },
+		{ href: '/#nouveautes', label: 'Coups de cœur' },
 		{ href: '/#evenements', label: 'Événements' },
-		{ href: '/#infos', label: 'Horaires & accès' }
+		{ href: '/#infos', label: 'Infos pratiques' }
 	];
 </script>
 

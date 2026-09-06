@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { featuredBooks, searchCatalogue } from '$lib/server/catalogue';
 import { TIMEZONE } from '$lib/config';
-import { upcomingEvents } from '$lib/server/events';
+import { pastEvents, upcomingEvents } from '$lib/server/events';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -25,6 +25,7 @@ export const load: PageServerLoad = ({ url }) => {
 		searching: q.length > 0,
 		books: q ? searchCatalogue(db, { q, shelfId: rayon }) : featuredBooks(db, rayon),
 		events: upcomingEvents(db, t.iso),
+		pastEvents: pastEvents(db, t.iso),
 		todayIdx: t.idx
 	};
 };
