@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/toast';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Table from '$lib/components/ui/table';
@@ -39,8 +40,11 @@
 					action="?/fillCovers"
 					use:enhance={() => {
 						filling = true;
-						return async ({ update }) => {
+						return async ({ result, update }) => {
 							filling = false;
+							if (result.type === 'success')
+								toast.success(String((result.data as { covers?: string })?.covers ?? 'Terminé'));
+							else toast.error('La recherche de couvertures a échoué.');
 							await update();
 						};
 					}}

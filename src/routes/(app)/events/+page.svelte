@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
+	import { enhanceToasts, formToasts } from '$lib/toast';
 	import EventForm from '$lib/components/EventForm.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -10,7 +11,7 @@
 
 	let { data } = $props();
 	// svelte-ignore state_referenced_locally
-	const sf = superForm(data.form, { resetForm: true });
+	const sf = superForm(data.form, { resetForm: true, ...formToasts() });
 	const upcoming = $derived(data.events.filter((e) => e.date >= data.today).reverse());
 	const past = $derived(data.events.filter((e) => e.date < data.today));
 </script>
@@ -29,7 +30,7 @@
 				<form
 					method="post"
 					action="?/delete"
-					use:enhance
+					use:enhance={enhanceToasts('Événement supprimé')}
 					onsubmit={(ev) => {
 						if (!confirm(`Supprimer « ${e.title} » ?`)) ev.preventDefault();
 					}}

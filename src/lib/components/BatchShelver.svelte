@@ -9,6 +9,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { localModel } from '$lib/embed/local-model.svelte';
+	import { toast } from '$lib/toast';
 	import {
 		confidenceLabel,
 		loadShelfContext,
@@ -67,6 +68,7 @@
 		} catch (err) {
 			error = (err as Error).message;
 			phase = 'idle';
+			toast.error('Le modèle local a échoué', { description: error });
 		}
 	}
 
@@ -82,6 +84,10 @@
 			r.done = res.ok ? 'ok' : 'error';
 		}
 		phase = 'done';
+		const ok = rows.filter((r) => r.done === 'ok').length;
+		const ko = rows.filter((r) => r.done === 'error').length;
+		if (ko) toast.error(`${ko} livre(s) non rangé(s)`);
+		if (ok) toast.success(`${ok} livre(s) rangé(s)`);
 		await invalidateAll();
 	}
 

@@ -5,6 +5,7 @@
 	 */
 	import { invalidateAll } from '$app/navigation';
 	import { Check, X } from '@lucide/svelte';
+	import { toast } from '$lib/toast';
 
 	type Kind = 'text' | 'select' | 'checkbox';
 	let {
@@ -50,6 +51,7 @@
 			if (!res.ok) throw new Error(body.error ?? `Erreur ${res.status}`);
 			current = next;
 			status = 'saved';
+			toast.success(`${label} enregistré`, { duration: 1800 });
 			// Tell SvelteKit the data changed: reloads this list and drops any page preloaded on hover.
 			await invalidateAll();
 			if (timer) clearTimeout(timer);
@@ -58,6 +60,7 @@
 			status = 'error';
 			error = (err as Error).message;
 			draft = typeof current === 'string' ? current : '';
+			toast.error(`${label} non enregistré`, { description: error });
 		}
 	}
 

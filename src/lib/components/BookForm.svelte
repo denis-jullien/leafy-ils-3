@@ -11,6 +11,7 @@
 	import type { BookMetadata } from '$lib/server/metadata';
 	import { localModel } from '$lib/embed/local-model.svelte';
 	import { confidenceLabel, proposeShelfLocally } from '$lib/embed/classify';
+	import { toast } from '$lib/toast';
 
 	type Data = z.infer<typeof bookSchema>;
 	let {
@@ -51,6 +52,7 @@
 			const res = await fetch(`/api/isbn/${isbn}`);
 			if (res.status === 404) {
 				lookupNote = 'Aucune notice trouvée. Remplissez les champs à la main.';
+				toast.warning('Aucune notice trouvée pour cet ISBN.');
 				return;
 			}
 			if (!res.ok) throw new Error(await res.text());
@@ -69,6 +71,9 @@
 			if (m.suggestedShelf && !$form.shelfId) {
 				$form.shelfId = m.suggestedShelf.id;
 				shelfNote = `Rayon proposé : ${m.suggestedShelf.name} (${m.suggestedShelf.reason})`;
+				toast.info(`Rayon proposé : ${m.suggestedShelf.name}`, {
+					description: m.suggestedShelf.reason
+				});
 			} else if (!m.suggestedShelf && !$form.shelfId) {
 				shelfNote = localModel.enabled
 					? 'Aucune règle ne correspond ; le modèle local cherche…'
@@ -79,8 +84,13 @@
 			lookupNote = m.sources.length
 				? `Notice : ${m.sources.join(' + ')}${cover}.`
 				: `Pas de notice${cover}.`;
+			const shortTitle = m.title.length > 60 ? `${m.title.slice(0, 57)}…` : m.title;
+			toast.success(`Notice trouvée : ${shortTitle}`, {
+				description: `${m.sources.join(' + ') || 'sans notice'}${m.coverUrl ? ', avec couverture' : ', sans couverture'}`
+			});
 		} catch (e) {
 			lookupNote = `Recherche impossible : ${(e as Error).message}`;
+			toast.error('Recherche impossible', { description: (e as Error).message });
 		} finally {
 			looking = false;
 		}
@@ -103,6 +113,14 @@
 			if (!$form.shelfId && p.confidence !== 'unsure') $form.shelfId = p.shelfId;
 			const alt = p.runnerUpName ? `, sinon ${p.runnerUpName}` : '';
 			shelfNote = `Modèle local : ${p.shelfName} (${confidenceLabel[p.confidence]}${alt})${p.confidence === 'unsure' ? ' — à choisir à la main' : ''}`;
+			if (p.confidence === 'unsure')
+				toast.warning('Rayon incertain', {
+					description: `Le modèle hésite entre ${p.shelfName} et ${p.runnerUpName ?? '?'}.`
+				});
+			else
+				toast.info(`Rayon proposé : ${p.shelfName}`, {
+					description: `modèle local, ${confidenceLabel[p.confidence]}${alt}`
+				});
 		} catch {
 			shelfNote = 'Modèle local indisponible ; choisissez le rayon à la main.';
 		}

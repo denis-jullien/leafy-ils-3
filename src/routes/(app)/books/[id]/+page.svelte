@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
+	import { enhanceToasts, formToasts } from '$lib/toast';
 	import BookForm from '$lib/components/BookForm.svelte';
 	import Barcode from '$lib/components/Barcode.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -11,7 +12,7 @@
 
 	let { data, form: actionData } = $props();
 	// svelte-ignore state_referenced_locally
-	const sf = superForm(data.form);
+	const sf = superForm(data.form, formToasts({ saved: 'Livre enregistré' }));
 	const { message } = sf;
 	const open = $derived(data.history.find((h) => !h.loan.returnedAt));
 </script>
@@ -79,7 +80,7 @@
 		<form
 			method="post"
 			action="?/delete"
-			use:enhance
+			use:enhance={enhanceToasts('Livre supprimé')}
 			onsubmit={(e) => {
 				if (!confirm('Supprimer ce livre ?')) e.preventDefault();
 			}}

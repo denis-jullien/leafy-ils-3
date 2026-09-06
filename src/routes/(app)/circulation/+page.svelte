@@ -14,6 +14,7 @@
 	import { fmtDate, isOverdue } from '$lib/format';
 	import { parseIsbn } from '$lib/isbn';
 	import { BOOK_STATUS } from '$lib/labels';
+	import { toast } from '$lib/toast';
 
 	let { data } = $props();
 
@@ -68,6 +69,10 @@
 			if (r.kind === 'family') {
 				family = r;
 				say('info', `${r.family.name} : ${r.openLoans.length} livre(s) en prêt`);
+				toast.info(`Famille : ${r.family.name}`, {
+					description: `${r.openLoans.length} livre(s) en prêt`,
+					duration: 2000
+				});
 				if (r.family.status !== 'active') say('warn', `${r.family.name} n'est pas un abonné actif`);
 				return;
 			}
@@ -105,15 +110,23 @@
 				return;
 			}
 			const isbn = parseIsbn(code);
-			if (isbn)
+			if (isbn) {
 				say(
 					'warn',
 					`Pas au catalogue : ${isbn}. Cliquez pour l'ajouter.`,
 					`/books/new?isbn=${isbn}`
 				);
-			else say('err', `Code inconnu : ${code}`);
+				toast.warning('Livre inconnu au catalogue', {
+					description: isbn,
+					action: { label: 'Ajouter', onClick: () => (location.href = `/books/new?isbn=${isbn}`) }
+				});
+			} else {
+				say('err', `Code inconnu : ${code}`);
+				toast.error(`Code inconnu : ${code}`);
+			}
 		} catch (err) {
 			say('err', (err as Error).message);
+			toast.error((err as Error).message);
 		} finally {
 			busy = false;
 		}
@@ -132,11 +145,15 @@
 			if (!res.ok) throw new Error(body.error ?? 'Prêt impossible');
 			const due = fmtDate(body.loans[0].dueAt);
 			say('ok', `${basket.length} livre(s) prêté(s) à ${family.family.name}, retour le ${due}`);
+			toast.success(`${basket.length} livre(s) prêté(s) à ${family.family.name}`, {
+				description: `À rendre le ${due}`
+			});
 			basket = [];
 			await refreshFamily();
 			await invalidateAll(); // pages preloaded on hover must not show pre-loan data
 		} catch (err) {
 			say('err', (err as Error).message);
+			toast.error((err as Error).message);
 		} finally {
 			busy = false;
 		}
@@ -229,6 +246,7 @@
 			const body = await res.json();
 			if (!res.ok) throw new Error(body.error ?? 'Retour impossible');
 			say('ok', `${returns.length} livre(s) rendu(s)`);
+			toast.success(`${returns.length} livre(s) rendu(s)`);
 			const familyId = family?.family.id;
 			const touchesFamily =
 				familyId !== undefined && returns.some((r) => r.loan.familyId === familyId);
@@ -237,6 +255,7 @@
 			await invalidateAll();
 		} catch (err) {
 			say('err', (err as Error).message);
+			toast.error((err as Error).message);
 		} finally {
 			busy = false;
 		}

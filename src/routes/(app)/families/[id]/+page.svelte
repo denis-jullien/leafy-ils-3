@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
+	import { enhanceToasts, formToasts } from '$lib/toast';
 	import FamilyForm from '$lib/components/FamilyForm.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -10,9 +11,12 @@
 
 	let { data, form: actionData } = $props();
 	// svelte-ignore state_referenced_locally
-	const sf = superForm(data.form);
+	const sf = superForm(data.form, formToasts({ saved: 'Famille enregistrée' }));
 	// svelte-ignore state_referenced_locally
-	const mf = superForm(data.memberForm, { resetForm: true });
+	const mf = superForm(data.memberForm, {
+		resetForm: true,
+		...formToasts({ saved: 'Membre ajouté' })
+	});
 	const { form: memberForm, errors: memberErrors, enhance: memberEnhance } = mf;
 </script>
 
@@ -52,11 +56,19 @@
 										>{fmtDate(l.dueAt)}</Table.Cell
 									>
 									<Table.Cell class="flex justify-end gap-1">
-										<form method="post" action="?/renew" use:enhance>
+										<form
+											method="post"
+											action="?/renew"
+											use:enhance={enhanceToasts('Prêt prolongé')}
+										>
 											<input type="hidden" name="loanId" value={l.id} />
 											<Button type="submit" size="sm" variant="ghost">Prolonger</Button>
 										</form>
-										<form method="post" action="?/returnBook" use:enhance>
+										<form
+											method="post"
+											action="?/returnBook"
+											use:enhance={enhanceToasts('Retour enregistré')}
+										>
 											<input type="hidden" name="bookId" value={l.book.id} />
 											<Button type="submit" size="sm" variant="secondary">Retour</Button>
 										</form>
@@ -83,7 +95,11 @@
 					{#each data.members as m (m.id)}
 						<li class="flex items-center justify-between">
 							<span>{m.name}{m.birthYear ? ` (${m.birthYear})` : ''}</span>
-							<form method="post" action="?/removeMember" use:enhance>
+							<form
+								method="post"
+								action="?/removeMember"
+								use:enhance={enhanceToasts('Membre retiré')}
+							>
 								<input type="hidden" name="memberId" value={m.id} />
 								<Button type="submit" size="sm" variant="ghost" title="Retirer">×</Button>
 							</form>

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { superForm } from 'sveltekit-superforms';
+	import { formToasts } from '$lib/toast';
 	import FamilyForm from '$lib/components/FamilyForm.svelte';
 
 	let { data } = $props();
 	// svelte-ignore state_referenced_locally
-	const sf = superForm(data.form);
+	const sf = superForm(data.form, formToasts({ created: 'Famille créée' }));
 </script>
 
 <div class="space-y-4">

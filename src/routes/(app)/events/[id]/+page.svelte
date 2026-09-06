@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
+	import { enhanceToasts, formToasts } from '$lib/toast';
 	import EventForm from '$lib/components/EventForm.svelte';
 	import { Button } from '$lib/components/ui/button';
 
 	let { data } = $props();
 	// svelte-ignore state_referenced_locally
-	const sf = superForm(data.form);
+	const sf = superForm(data.form, formToasts({ saved: 'Événement enregistré' }));
 </script>
 
 <div class="mx-auto max-w-2xl space-y-4">
@@ -18,7 +19,7 @@
 	<form
 		method="post"
 		action="?/delete"
-		use:enhance
+		use:enhance={enhanceToasts('Événement supprimé')}
 		onsubmit={(e) => {
 			if (!confirm('Supprimer cet événement ?')) e.preventDefault();
 		}}

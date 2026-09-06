@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
+	import { enhanceToasts, formToasts } from '$lib/toast';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -19,7 +20,7 @@
 		message,
 		enhance: createEnhance,
 		submitting
-	} = superForm(data.form, { resetForm: true });
+	} = superForm(data.form, { resetForm: true, ...formToasts() });
 	let testing = $state(false);
 	let localResult = $state<LocalProposal | null | 'error'>(null);
 
@@ -71,7 +72,7 @@
 			<Card.Root>
 				<Card.Content class="flex flex-wrap items-start gap-3 pt-4">
 					<div class="flex flex-col gap-1">
-						<form method="post" action="?/move" use:enhance>
+						<form method="post" action="?/move" use:enhance={enhanceToasts('Ordre modifié')}>
 							<input type="hidden" name="id" value={shelf.id} /><input
 								type="hidden"
 								name="dir"
@@ -81,7 +82,7 @@
 								><ArrowUp class="size-4" /></Button
 							>
 						</form>
-						<form method="post" action="?/move" use:enhance>
+						<form method="post" action="?/move" use:enhance={enhanceToasts('Ordre modifié')}>
 							<input type="hidden" name="id" value={shelf.id} /><input
 								type="hidden"
 								name="dir"
@@ -99,7 +100,7 @@
 					<form
 						method="post"
 						action="?/save"
-						use:enhance
+						use:enhance={enhanceToasts('Rayon enregistré')}
 						class="grid flex-1 gap-3 md:grid-cols-[14rem_1fr_10rem_auto]"
 						data-no-wedge
 					>
@@ -147,7 +148,7 @@
 					<form
 						method="post"
 						action="?/remove"
-						use:enhance
+						use:enhance={enhanceToasts('Rayon supprimé')}
 						class="self-end"
 						onsubmit={(e) => {
 							if (

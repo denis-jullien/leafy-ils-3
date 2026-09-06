@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { superForm } from 'sveltekit-superforms';
+	import { enhanceToasts, formToasts } from '$lib/toast';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -17,7 +18,7 @@
 		message,
 		enhance: formEnhance,
 		submitting
-	} = superForm(data.form, { resetForm: true });
+	} = superForm(data.form, { resetForm: true, ...formToasts() });
 </script>
 
 <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -46,7 +47,7 @@
 								></Table.Cell
 							>
 							<Table.Cell class="flex justify-end gap-1">
-								<form method="post" action="?/setRole" use:enhance>
+								<form method="post" action="?/setRole" use:enhance={enhanceToasts('Rôle modifié')}>
 									<input type="hidden" name="userId" value={u.id} />
 									<input type="hidden" name="role" value={u.role === 'admin' ? 'user' : 'admin'} />
 									<Button type="submit" size="sm" variant="ghost"
@@ -56,7 +57,7 @@
 								<form
 									method="post"
 									action="?/remove"
-									use:enhance
+									use:enhance={enhanceToasts('Compte supprimé')}
 									onsubmit={(e) => {
 										if (!confirm(`Supprimer le compte de ${u.name} ?`)) e.preventDefault();
 									}}
