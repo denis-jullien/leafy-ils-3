@@ -22,6 +22,20 @@
       "when": 1788617632066,
       "tag": "0002_events",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788690370579,
+      "tag": "0003_shelves",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788690392930,
+      "tag": "0004_drop_legacy_shelf_columns",
+      "breakpoints": true
     }
   ]
 }

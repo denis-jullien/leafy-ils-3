@@ -23,11 +23,20 @@ export interface BookMetadata {
 	sources: string[];
 	/** Where the cover came from, if any. */
 	coverSource?: string;
+	/** Subject and genre headings, catalogue categories and coded signals, for shelf matching. */
+	subjects: string[];
+	/** Dewey-like class numbers. */
+	dewey: string[];
 }
 
 export type ProviderName = 'bnf' | 'sudoc' | 'google' | 'openlibrary';
 
-type Partial = Omit<BookMetadata, 'isbn13' | 'sources' | 'coverUrl' | 'coverSource'> & {
+type Partial = Omit<
+	BookMetadata,
+	'isbn13' | 'sources' | 'coverUrl' | 'coverSource' | 'subjects' | 'dewey'
+> & {
+	subjects?: string[];
+	dewey?: string[];
 	/** Cover candidates, best first. Verified later. */
 	covers?: { url: string; source: string }[];
 	bnfArk?: string;
@@ -104,6 +113,7 @@ const google: Provider = async (isbn13, signal) => {
 		language: v.language as string | undefined,
 		pageCount: typeof v.pageCount === 'number' ? v.pageCount : undefined,
 		description: v.description as string | undefined,
+		subjects: Array.isArray(v.categories) ? (v.categories as string[]) : [],
 		// zoom=1 is the ~128px thumbnail; zoom=2 gives a usable ~300px cover when it exists.
 		covers: thumb
 			? [
@@ -133,6 +143,7 @@ const openlibrary: Provider = async (isbn13, signal) => {
 		publisher: (names(d.publishers) as string[])[0],
 		publishedYear: yearOf(d.publish_date as string | undefined),
 		pageCount: typeof d.number_of_pages === 'number' ? d.number_of_pages : undefined,
+		subjects: names(d.subjects) as string[],
 		covers: [cover?.large, cover?.medium]
 			.filter((u): u is string => !!u)
 			.map((url) => ({ url, source: 'openlibrary' }))
@@ -206,7 +217,9 @@ function merge(into: Partial, from: Partial): Partial {
 		pageCount: into.pageCount ?? from.pageCount,
 		description: into.description ?? from.description,
 		bnfArk: into.bnfArk ?? from.bnfArk,
-		covers: [...(into.covers ?? []), ...(from.covers ?? [])]
+		covers: [...(into.covers ?? []), ...(from.covers ?? [])],
+		subjects: [...new Set([...(into.subjects ?? []), ...(from.subjects ?? [])])],
+		dewey: [...new Set([...(into.dewey ?? []), ...(from.dewey ?? [])])]
 	};
 }
 
@@ -279,6 +292,8 @@ export async function lookupIsbn(
 		description: merged?.description,
 		coverUrl: cover?.url,
 		coverSource: cover?.source,
+		subjects: merged?.subjects ?? [],
+		dewey: merged?.dewey ?? [],
 		sources
 	};
 }

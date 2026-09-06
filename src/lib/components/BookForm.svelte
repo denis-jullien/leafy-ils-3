@@ -7,7 +7,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { parseIsbn } from '$lib/isbn';
-	import { CATEGORIES } from '$lib/config';
 	import { BOOK_STATUS } from '$lib/labels';
 	import type { BookMetadata } from '$lib/server/metadata';
 
@@ -17,7 +16,8 @@
 		action,
 		submitLabel = 'Enregistrer',
 		showLookup = true,
-		scanFirst = false
+		scanFirst = false,
+		shelves = []
 	}: {
 		sf: SuperForm<Data>;
 		action?: string;
@@ -25,7 +25,10 @@
 		showLookup?: boolean;
 		/** New-book mode: a big, focused ISBN field so the scanner can go straight in. */
 		scanFirst?: boolean;
+		shelves?: { id: number; name: string }[];
 	} = $props();
+
+	let shelfNote = $state('');
 
 	// svelte-ignore state_referenced_locally
 	const { form, errors, message, enhance, submitting } = sf;
@@ -49,7 +52,9 @@
 				return;
 			}
 			if (!res.ok) throw new Error(await res.text());
-			const m = (await res.json()) as BookMetadata;
+			const m = (await res.json()) as BookMetadata & {
+				suggestedShelf: { id: number; name: string; reason: string } | null;
+			};
 			$form.isbn = m.isbn13;
 			$form.title ||= m.title;
 			$form.authors ||= m.authors.join('; ');
@@ -59,6 +64,12 @@
 			$form.pageCount ||= m.pageCount ?? null;
 			$form.description ||= m.description ?? '';
 			$form.coverUrl ||= m.coverUrl ?? '';
+			if (m.suggestedShelf && !$form.shelfId) {
+				$form.shelfId = m.suggestedShelf.id;
+				shelfNote = `Rayon proposé : ${m.suggestedShelf.name} (${m.suggestedShelf.reason})`;
+			} else if (!m.suggestedShelf && !$form.shelfId) {
+				shelfNote = 'Aucun rayon ne correspond aux règles ; choisissez-le à la main.';
+			}
 			const cover = m.coverUrl ? `, couverture ${m.coverSource}` : ', pas de couverture trouvée';
 			lookupNote = m.sources.length
 				? `Notice : ${m.sources.join(' + ')}${cover}.`
@@ -138,22 +149,19 @@
 		<Input id="pageCount" name="pageCount" type="number" bind:value={$form.pageCount} />
 	</div>
 	<div class="space-y-1">
-		<Label for="shelf">Rayon</Label>
-		<Input id="shelf" name="shelf" bind:value={$form.shelf} placeholder="ex. Jeunesse A" />
-	</div>
-	<div class="space-y-1">
-		<Label for="category">Catégorie</Label>
+		<Label for="shelfId">Rayon</Label>
 		<select
-			id="category"
-			name="category"
-			bind:value={$form.category}
+			id="shelfId"
+			name="shelfId"
+			bind:value={$form.shelfId}
 			class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
 		>
-			<option value="">—</option>
-			{#each CATEGORIES as c (c.id)}
-				<option value={c.id}>{c.label}</option>
+			<option value={null}>—</option>
+			{#each shelves as s (s.id)}
+				<option value={s.id}>{s.name}</option>
 			{/each}
 		</select>
+		{#if shelfNote}<p class="text-sm text-muted-foreground">{shelfNote}</p>{/if}
 	</div>
 	<div class="flex items-center gap-2 pt-6">
 		<input

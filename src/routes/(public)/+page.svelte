@@ -5,14 +5,11 @@
 
 	let { data } = $props();
 
-	/** Build a home URL keeping the current query / category unless overridden. */
-	function href(over: { q?: string; cat?: string | null }) {
+	/** Build a home URL keeping the current query / shelf unless overridden. */
+	function href(over: { q?: string; rayon?: number | null }) {
 		const q = over.q ?? data.q;
-		const cat = over.cat === undefined ? data.category : over.cat;
-		const parts = [
-			q && `q=${encodeURIComponent(q)}`,
-			cat && `cat=${encodeURIComponent(cat)}`
-		].filter(Boolean);
+		const rayon = over.rayon === undefined ? data.rayon : over.rayon;
+		const parts = [q && `q=${encodeURIComponent(q)}`, rayon && `rayon=${rayon}`].filter(Boolean);
 		return `/${parts.length ? `?${parts.join('&')}` : ''}#nouveautes`;
 	}
 
@@ -47,7 +44,7 @@
 					placeholder="Exemple : jardin, ou Ferrand"
 					autocomplete="off"
 				/>
-				{#if data.category}<input type="hidden" name="cat" value={data.category} />{/if}
+				{#if data.rayon}<input type="hidden" name="rayon" value={data.rayon} />{/if}
 				<button class="sb-btn" type="submit">Rechercher</button>
 			</div>
 			{#if data.searching}
@@ -74,7 +71,7 @@
 
 		{#if n === 0}
 			<div class="empty">
-				{#if data.searching || data.category}
+				{#if data.searching || data.rayon}
 					<p>Aucun ouvrage ne correspond à votre recherche.</p>
 					<a class="btn-ghost" href="/#nouveautes">Réinitialiser</a>
 				{:else}

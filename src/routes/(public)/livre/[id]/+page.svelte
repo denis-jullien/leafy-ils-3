@@ -1,6 +1,5 @@
 <script lang="ts">
 	import BookCard from '$lib/components/site/BookCard.svelte';
-	import { CATEGORIES } from '$lib/config';
 	import { SITE } from '$lib/content/site';
 	import { formatIsbn13 } from '$lib/isbn';
 
@@ -14,7 +13,6 @@
 			.map((s) => s.trim())
 			.filter(Boolean) ?? []
 	);
-	const category = $derived(CATEGORIES.find((c) => c.id === book.category));
 	const backDate = $derived(
 		book.dueAt
 			? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(
@@ -28,8 +26,7 @@
 			book.publishedYear && ['Année', String(book.publishedYear)],
 			book.pageCount && ['Pages', String(book.pageCount)],
 			book.language && ['Langue', book.language],
-			book.isbn13 && ['ISBN', formatIsbn13(book.isbn13)],
-			book.shelf && ['Rayon', book.shelf]
+			book.isbn13 && ['ISBN', formatIsbn13(book.isbn13)]
 		].filter(Boolean) as [string, string][]
 	);
 </script>
@@ -67,7 +64,7 @@
 			</div>
 
 			<div class="detail-main">
-				{#if category}<span class="kicker kicker-1">{category.label}</span>{/if}
+				{#if book.shelf}<span class="kicker kicker-1">{book.shelf}</span>{/if}
 				<h1 class="section-title">{book.title}</h1>
 				{#if authors.length}
 					<p class="detail-authors">

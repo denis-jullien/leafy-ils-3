@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { parseIsbn } from './isbn';
-import { CATEGORY_IDS } from './config';
 
 export const loginSchema = z.object({
 	email: z.email('Adresse email invalide'),
@@ -45,8 +44,7 @@ export const bookSchema = z.object({
 	pageCount: optionalInt,
 	description: optionalText,
 	coverUrl: optionalText,
-	shelf: optionalText,
-	category: z.preprocess((v) => (v === '' ? null : v), z.enum(CATEGORY_IDS).nullable()).optional(),
+	shelfId: optionalInt,
 	featured: z
 		.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean())
 		.default(false),
@@ -82,8 +80,10 @@ export const eventSchema = z.object({
 /** Fields editable straight from the books table. No defaults: a PATCH must only touch what it names. */
 export const bookQuickSchema = z
 	.object({
-		shelf: optionalText,
-		category: z.enum(CATEGORY_IDS, { error: 'Catégorie inconnue' }).nullable(),
+		shelfId: z.preprocess(
+			(v) => (v === '' || v === null || v === undefined ? null : Number(v)),
+			z.number().int().nullable()
+		),
 		featured: z.boolean({ error: 'Valeur invalide' }),
 		status: z.enum(['active', 'lost', 'withdrawn'], { error: 'État inconnu' })
 	})
@@ -98,3 +98,9 @@ export const familyQuickSchema = z
 	})
 	.partial()
 	.strict();
+
+export const shelfSchema = z.object({
+	name: z.string().trim().min(1, 'Le nom est obligatoire'),
+	keywords: optionalText,
+	dewey: optionalText
+});

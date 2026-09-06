@@ -7,6 +7,7 @@ import { db } from '$lib/server/db';
 import { books, families, loans } from '$lib/server/db/schema';
 import { DuplicateBookError, updateBook } from '$lib/server/books';
 import { bookSchema } from '$lib/schemas';
+import { listShelves } from '$lib/server/shelves';
 
 const loadBook = (id: string) => {
 	const n = Number(id);
@@ -30,7 +31,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	const form = await superValidate({ ...book, isbn: book.isbn13 ?? '' }, zod4(bookSchema), {
 		errors: false
 	});
-	return { book, history, form };
+	return { book, history, form, shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name })) };
 };
 
 export const actions: Actions = {

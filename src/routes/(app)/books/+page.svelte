@@ -9,19 +9,19 @@
 	import QuickField from '$lib/components/QuickField.svelte';
 	import { fmtDate } from '$lib/format';
 	import { BOOK_STATUS, ETAT_OPTIONS } from '$lib/labels';
-	import { CATEGORIES } from '$lib/config';
 
 	let { data, form } = $props();
 	let filling = $state(false);
 
-	const categoryOptions = [
+	const shelfOptions = $derived([
 		{ value: '', label: '—' },
-		...CATEGORIES.map((c) => ({ value: c.id, label: c.label }))
-	];
-	const categoryFilter = [
-		{ value: '', label: 'Toutes' },
-		...CATEGORIES.map((c) => ({ value: c.id, label: c.label }))
-	];
+		...data.shelves.map((s) => ({ value: String(s.id), label: s.name }))
+	]);
+	const shelfFilter = $derived([
+		{ value: '', label: 'Tous' },
+		{ value: 'none', label: 'Sans rayon' },
+		...data.shelves.map((s) => ({ value: String(s.id), label: s.name }))
+	]);
 	const statusOptions = Object.entries(BOOK_STATUS).map(([value, label]) => ({ value, label }));
 	const coeurOptions = [
 		{ value: '', label: 'Tous' },
@@ -50,6 +50,7 @@
 					</Button>
 				</form>
 			{/if}
+			<Button href="/shelves" variant="outline">Rayons</Button>
 			<Button href="/books/new">Ajouter un livre</Button>
 		</div>
 	</div>
@@ -68,7 +69,6 @@
 					<SortHead key="authors" label="Auteurs" sort={data.sort} dir={data.dir} />
 					<SortHead key="year" label="Année" sort={data.sort} dir={data.dir} />
 					<SortHead key="shelf" label="Rayon" sort={data.sort} dir={data.dir} />
-					<SortHead key="category" label="Catégorie" sort={data.sort} dir={data.dir} />
 					<Table.Head title="Coup de cœur">♥</Table.Head>
 					<SortHead key="status" label="État" sort={data.sort} dir={data.dir} />
 				</Table.Row>
@@ -109,18 +109,10 @@
 					<Table.Head
 						><HeadFilter
 							name="r"
-							value={data.filters.shelf}
-							placeholder="Rayon"
-							label="Filtrer par rayon"
-						/></Table.Head
-					>
-					<Table.Head
-						><HeadFilter
-							name="cat"
 							kind="select"
-							value={data.filters.cat}
-							options={categoryFilter}
-							label="Filtrer par catégorie"
+							value={data.filters.shelf}
+							options={shelfFilter}
+							label="Filtrer par rayon"
 						/></Table.Head
 					>
 					<Table.Head
@@ -159,20 +151,11 @@
 						<Table.Cell>
 							<QuickField
 								endpoint="/api/books/{book.id}"
-								field="shelf"
-								value={book.shelf}
-								placeholder="—"
-								label="Rayon"
-							/>
-						</Table.Cell>
-						<Table.Cell>
-							<QuickField
-								endpoint="/api/books/{book.id}"
-								field="category"
+								field="shelfId"
 								kind="select"
-								value={book.category}
-								options={categoryOptions}
-								label="Catégorie"
+								value={book.shelfId === null ? '' : String(book.shelfId)}
+								options={shelfOptions}
+								label="Rayon"
 							/>
 						</Table.Cell>
 						<Table.Cell>
@@ -201,7 +184,7 @@
 					</Table.Row>
 				{:else}
 					<Table.Row
-						><Table.Cell colspan={7} class="text-muted-foreground"
+						><Table.Cell colspan={6} class="text-muted-foreground"
 							>Aucun livre ne correspond.</Table.Cell
 						></Table.Row
 					>

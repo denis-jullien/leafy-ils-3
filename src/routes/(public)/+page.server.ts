@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { featuredBooks, searchCatalogue } from '$lib/server/catalogue';
-import { CATEGORY_IDS, TIMEZONE, type CategoryId } from '$lib/config';
+import { TIMEZONE } from '$lib/config';
 import { upcomingEvents } from '$lib/server/events';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -17,16 +17,13 @@ function today(now = new Date()) {
 
 export const load: PageServerLoad = ({ url }) => {
 	const q = url.searchParams.get('q')?.trim() ?? '';
-	const rawCat = url.searchParams.get('cat');
-	const category = (CATEGORY_IDS as readonly string[]).includes(rawCat ?? '')
-		? (rawCat as CategoryId)
-		: null;
+	const rayon = Number(url.searchParams.get('rayon')) || null;
 	const t = today();
 	return {
 		q,
-		category,
+		rayon,
 		searching: q.length > 0,
-		books: q ? searchCatalogue(db, { q, category }) : featuredBooks(db, category),
+		books: q ? searchCatalogue(db, { q, shelfId: rayon }) : featuredBooks(db, rayon),
 		events: upcomingEvents(db, t.iso),
 		todayIdx: t.idx
 	};

@@ -13,5 +13,5 @@
 		Scannez le code-barres ISBN au dos du livre. Les informations se remplissent depuis les
 		catalogues en ligne ; corrigez ce qui manque et enregistrez.
 	</p>
-	<BookForm {sf} submitLabel="Ajouter au catalogue" scanFirst />
+	<BookForm {sf} shelves={data.shelves} submitLabel="Ajouter au catalogue" scanFirst />
 </div>

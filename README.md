@@ -48,7 +48,7 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 - Hours, contact and membership text live in `src/lib/content/site.ts`.
 - Events are managed from the desk (**Événements**). The next four show on the public
   site; past ones disappear on their own. `npm run db:seed:events` adds four samples.
-- Categories and the library name are in `src/lib/config.ts`.
+- The library name is in `src/lib/config.ts`. Rayons (shelves) are managed on the desk.
 - Put the emblem at `static/logo.jpg` (square). A teal "LA" disc shows until then.
 - Books flagged **Coup de cœur** on the desk appear first; books added in the last 30 days
   get a **Nouveau** badge. The search box also accepts an ISBN.
@@ -89,6 +89,18 @@ Google image search as a last resort.
 
 On the desk, **Chercher la notice** fills the empty fields of a book form, and the books
 list has **Chercher les couvertures manquantes**, which processes ten books per click.
+
+## Rayons and automatic shelving
+
+A rayon is both where a book sits and how the public site groups it. The list is edited
+on the desk (**Rayons**, from the books list). Each rayon carries matching rules used when
+a record is fetched: comma-separated keywords, matched whole-word and accent-insensitively
+against the record's subject and genre headings (BnF and Sudoc RAMEAU, Google categories,
+Open Library subjects) and against signals derived from UNIMARC coded fields
+(`public:jeunesse`, `public:ado`, `public:adulte`, `forme:roman`, `forme:documentaire`…), plus
+Dewey prefixes or ranges matched against the record's class number. Rayons are tried in
+order and the first match wins, so the order is editable too. The Rayons page has a tester:
+paste an ISBN and see the signals and the proposal. Logic lives in `src/lib/classify.ts`.
 
 ## Desk lists
 

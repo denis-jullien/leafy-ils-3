@@ -1,8 +1,7 @@
 import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import type { Db } from './db/client';
-import { books, loans } from './db/schema';
+import { books, loans, shelves } from './db/schema';
 import { parseIsbn } from '$lib/isbn';
-import type { CategoryId } from '$lib/config';
 
 /** What the public may see about a book: no notes, no barcodes, no RFID. */
 export interface PublicBook {
@@ -12,7 +11,7 @@ export interface PublicBook {
 	publisher: string | null;
 	publishedYear: number | null;
 	coverUrl: string | null;
-	category: string | null;
+	shelf: string | null;
 	featured: boolean;
 	available: boolean;
 	isNew: boolean;
@@ -23,7 +22,6 @@ export interface PublicBookDetail extends PublicBook {
 	description: string | null;
 	pageCount: number | null;
 	language: string | null;
-	shelf: string | null;
 	/** When the book is out: the date it is expected back. */
 	dueAt: Date | null;
 	isbn13: string | null;
@@ -38,7 +36,7 @@ const publicColumns = {
 	publisher: books.publisher,
 	publishedYear: books.publishedYear,
 	coverUrl: books.coverUrl,
-	category: books.category,
+	shelf: shelves.name,
 	featured: books.featured,
 	createdAt: books.createdAt,
 	dueAt: loans.dueAt
@@ -59,17 +57,20 @@ function toPublic(
 
 export interface CatalogueQuery {
 	q?: string;
-	category?: CategoryId | null;
+	shelfId?: number | null;
 	limit?: number;
 }
 
+const shelfFilter = (shelfId: number | null | undefined): SQL | undefined =>
+	shelfId == null ? undefined : eq(books.shelfId, shelfId);
+
 /**
  * Public catalogue search: title, author or publisher fragment, or an exact ISBN,
- * optionally within one category. Empty query + category lists that category.
+ * optionally within one shelf. Empty query + shelf lists that shelf.
  */
 export function searchCatalogue(
 	db: Db,
-	{ q = '', category = null, limit = 60 }: CatalogueQuery
+	{ q = '', shelfId = null, limit = 60 }: CatalogueQuery
 ): PublicBook[] {
 	const term = q.trim();
 	const filters: SQL[] = [eq(books.status, 'active')];
@@ -86,11 +87,13 @@ export function searchCatalogue(
 					)!
 		);
 	}
-	if (category) filters.push(eq(books.category, category));
+	const byShelf = shelfFilter(shelfId);
+	if (byShelf) filters.push(byShelf);
 	return db
 		.select(publicColumns)
 		.from(books)
 		.leftJoin(loans, onLoanJoin)
+		.leftJoin(shelves, eq(shelves.id, books.shelfId))
 		.where(and(...filters))
 		.orderBy(asc(books.title))
 		.limit(limit)
@@ -105,29 +108,26 @@ export function getPublicBook(db: Db, id: number): PublicBookDetail | null {
 			description: books.description,
 			pageCount: books.pageCount,
 			language: books.language,
-			shelf: books.shelf,
 			isbn13: books.isbn13
 		})
 		.from(books)
 		.leftJoin(loans, onLoanJoin)
+		.leftJoin(shelves, eq(shelves.id, books.shelfId))
 		.where(and(eq(books.id, id), eq(books.status, 'active')))
 		.get();
 	if (!row) return null;
-	const { description, pageCount, language, shelf, isbn13, ...rest } = row;
-	return { ...toPublic(rest), description, pageCount, language, shelf, isbn13, dueAt: row.dueAt };
+	const { description, pageCount, language, isbn13, ...rest } = row;
+	return { ...toPublic(rest), description, pageCount, language, isbn13, dueAt: row.dueAt };
 }
 
 /** The welcome rail: volunteers' picks first, then the newest arrivals. */
-export function featuredBooks(
-	db: Db,
-	category: CategoryId | null = null,
-	limit = 12
-): PublicBook[] {
+export function featuredBooks(db: Db, shelfId: number | null = null, limit = 12): PublicBook[] {
 	return db
 		.select(publicColumns)
 		.from(books)
 		.leftJoin(loans, onLoanJoin)
-		.where(and(eq(books.status, 'active'), category ? eq(books.category, category) : undefined))
+		.leftJoin(shelves, eq(shelves.id, books.shelfId))
+		.where(and(eq(books.status, 'active'), shelfFilter(shelfId)))
 		.orderBy(desc(books.featured), desc(books.createdAt))
 		.limit(limit)
 		.all()

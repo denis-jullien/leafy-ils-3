@@ -8,6 +8,10 @@ const bnf = `<srw:record><srw:recordData><mxc:record>
 <mxc:datafield tag="210" ind1=" " ind2=" "><mxc:subfield code="a">[Paris]</mxc:subfield><mxc:subfield code="c">Gallimard</mxc:subfield><mxc:subfield code="d">DL 2007</mxc:subfield></mxc:datafield>
 <mxc:datafield tag="215" ind1=" " ind2=" "><mxc:subfield code="a">1 vol. (113 p.)</mxc:subfield><mxc:subfield code="d">18 cm</mxc:subfield></mxc:datafield>
 <mxc:datafield tag="330" ind1=" " ind2=" "><mxc:subfield code="a">Le récit des aventures d&apos;un petit garçon &amp; d&apos;un aviateur.</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="100" ind1=" " ind2=" "><mxc:subfield code="a">20070503d2007    a  y0frey50      ba</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="105" ind1=" " ind2=" "><mxc:subfield code="a">||||z   00|a|</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="608" ind1=" " ind2=" "><mxc:subfield code="a">Romans</mxc:subfield><mxc:subfield code="2">CNLJ</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="686" ind1=" " ind2=" "><mxc:subfield code="a">809</mxc:subfield></mxc:datafield>
 <mxc:datafield tag="700" ind1=" " ind2="|"><mxc:subfield code="a">Saint-Exupéry</mxc:subfield><mxc:subfield code="b">Antoine de</mxc:subfield><mxc:subfield code="4">070</mxc:subfield></mxc:datafield>
 </mxc:record></srw:recordData></srw:record>`;
 
@@ -33,6 +37,8 @@ describe('unimarc', () => {
 			isbn: '9782070612758'
 		});
 		expect(b.description).toBe("Le récit des aventures d'un petit garçon & d'un aviateur.");
+		expect(b.subjects).toEqual(['Romans', 'public:jeunesse', 'forme:roman', 'forme:fiction']);
+		expect(b.dewey).toEqual(['809']);
 	});
 
 	it('reads a Sudoc MARCXML record, with the 214 field and the BnF ark', () => {

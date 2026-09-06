@@ -31,8 +31,7 @@ function toRow(input: BookInput) {
 		pageCount: input.pageCount ?? null,
 		description: input.description ?? null,
 		coverUrl: input.coverUrl ?? null,
-		shelf: input.shelf ?? null,
-		category: input.category ?? null,
+		shelfId: input.shelfId ?? null,
 		featured: input.featured,
 		notes: input.notes ?? null,
 		status: input.status

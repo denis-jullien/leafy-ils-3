@@ -46,6 +46,26 @@ export const members = sqliteTable(
 );
 
 /**
+ * A shelf ("rayon"): where a book lives and how the public sees it grouped.
+ * Keywords and Dewey rules let the ISBN lookup propose one automatically.
+ */
+export const shelves = sqliteTable(
+	'shelves',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		name: text('name').notNull().unique(),
+		/** Rules are tried in this order; the first shelf that matches wins. */
+		position: integer('position').notNull().default(0),
+		/** Comma-separated words or phrases matched against subjects, genres and signals. */
+		keywords: text('keywords'),
+		/** Comma-separated Dewey prefixes ("741.5") or ranges ("800-899"). */
+		dewey: text('dewey'),
+		...timestamps
+	},
+	(t) => [index('shelves_position_idx').on(t.position)]
+);
+
+/**
  * One row per physical book. The library holds one copy per title, so the
  * book *is* the item. The barcode defaults to the ISBN-13; books without an
  * ISBN get an internal barcode (B000123) and a printed label.
@@ -65,9 +85,7 @@ export const books = sqliteTable(
 		pageCount: integer('page_count'),
 		description: text('description'),
 		coverUrl: text('cover_url'),
-		shelf: text('shelf'),
-		/** One of CATEGORIES in $lib/config, shown as filter chips on the public site. */
-		category: text('category'),
+		shelfId: integer('shelf_id').references(() => shelves.id, { onDelete: 'set null' }),
 		/** "Coup de cœur": picked by the volunteers, shown first on the welcome page. */
 		featured: integer('featured', { mode: 'boolean' }).notNull().default(false),
 		notes: text('notes'),
@@ -76,7 +94,7 @@ export const books = sqliteTable(
 			.default('active'),
 		...timestamps
 	},
-	(t) => [index('books_title_idx').on(t.title)]
+	(t) => [index('books_title_idx').on(t.title), index('books_shelf_idx').on(t.shelfId)]
 );
 
 export const loans = sqliteTable(
@@ -128,6 +146,7 @@ export const events = sqliteTable(
 	(t) => [index('events_date_idx').on(t.date)]
 );
 
+export type Shelf = typeof shelves.$inferSelect;
 export type Family = typeof families.$inferSelect;
 export type NewFamily = typeof families.$inferInsert;
 export type Member = typeof members.$inferSelect;

@@ -1,3 +1,5 @@
+import { audienceSignals, formSignals } from '$lib/classify';
+
 /**
  * Minimal UNIMARC reader for the XML flavours served by BnF (MarcXchange,
  * `mxc:` prefixed) and Sudoc (plain MARCXML). Regex-based on purpose: the
@@ -79,6 +81,10 @@ export interface UnimarcBook {
 	isbn?: string;
 	/** BnF ARK, from the record id or from Sudoc's 033 link to BnF. */
 	bnfArk?: string;
+	/** Subject (606/610) and genre (608) headings plus audience/form signals. */
+	subjects: string[];
+	/** Dewey (676) and BnF classification frame (686) numbers. */
+	dewey: string[];
 }
 
 const cleanPublisher = (s: string) =>
@@ -127,6 +133,19 @@ export function unimarcToBook(fields: UnimarcField[]): UnimarcBook | null {
 
 	const lang = first(fields, '101', 'a');
 	const isbnRaw = first(fields, '010', 'a');
+	const headings = fields
+		.filter((f) => f.tag === '606' || f.tag === '608' || f.tag === '610')
+		.flatMap((f) => [...(f.sub.a ?? []), ...(f.sub.x ?? [])]);
+	const subjects = [
+		...new Set([
+			...headings,
+			...audienceSignals(first(fields, '100', 'a')),
+			...formSignals(first(fields, '105', 'a'))
+		])
+	];
+	const dewey = fields
+		.filter((f) => f.tag === '676' || f.tag === '686')
+		.flatMap((f) => f.sub.a ?? []);
 	const arkLink = fields.find((f) => f.tag === '033' && /ark:\/12148\//.test(f.sub.a?.[0] ?? ''))
 		?.sub.a?.[0];
 
@@ -139,6 +158,8 @@ export function unimarcToBook(fields: UnimarcField[]): UnimarcBook | null {
 		pageCount: pages ? Number(pages) : undefined,
 		description: first(fields, '330', 'a'),
 		isbn: isbnRaw?.replace(/[^0-9Xx]/g, ''),
-		bnfArk: arkLink && /ark:\/12148\/\w+/.exec(arkLink)?.[0]
+		bnfArk: arkLink && /ark:\/12148\/\w+/.exec(arkLink)?.[0],
+		subjects,
+		dewey
 	};
 }

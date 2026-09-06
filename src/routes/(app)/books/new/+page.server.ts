@@ -5,12 +5,14 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { createBook, DuplicateBookError } from '$lib/server/books';
 import { bookSchema } from '$lib/schemas';
+import { listShelves } from '$lib/server/shelves';
 
 export const load: PageServerLoad = async ({ url }) => {
 	// /books/new?isbn=978... lets the circulation page hand over an unknown scan.
 	const isbn = url.searchParams.get('isbn') ?? '';
 	return {
-		form: await superValidate({ isbn, status: 'active' }, zod4(bookSchema), { errors: false })
+		form: await superValidate({ isbn, status: 'active' }, zod4(bookSchema), { errors: false }),
+		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name }))
 	};
 };
 

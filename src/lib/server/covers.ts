@@ -2,6 +2,7 @@ import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { Db } from './db/client';
 import { books } from './db/schema';
 import { lookupIsbn } from './metadata';
+import { proposeShelf } from './shelves';
 
 export interface FillResult {
 	tried: number;
@@ -27,6 +28,10 @@ export async function fillMissingCovers(db: Db, batch = 10): Promise<FillResult>
 		if (meta?.publishedYear && !book.publishedYear) patch.publishedYear = meta.publishedYear;
 		if (meta?.pageCount && !book.pageCount) patch.pageCount = meta.pageCount;
 		if (meta?.language && !book.language) patch.language = meta.language;
+		if (meta && book.shelfId === null) {
+			const match = proposeShelf(db, meta);
+			if (match) patch.shelfId = match.shelf.id;
+		}
 		// Remember we tried, so the next batch moves on: an empty string means "looked, none".
 		if (!patch.coverUrl) patch.coverUrl = '';
 		else filled++;
