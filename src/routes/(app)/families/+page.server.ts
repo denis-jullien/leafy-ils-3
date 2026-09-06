@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, like, sql, type SQL } from 'drizzle-orm';
+import { squash } from '$lib/search';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { families, loans } from '$lib/server/db/schema';
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	};
 
 	const filters: SQL[] = [];
-	if (f.name) filters.push(like(families.name, `%${f.name}%`));
+	if (f.name) filters.push(like(sql`squash(${families.name})`, `%${squash(f.name)}%`));
 	if (f.email) filters.push(like(families.email, `%${f.email}%`));
 	if (f.phone) filters.push(like(families.phone, `%${f.phone}%`));
 	if (f.statut !== '') filters.push(eq(families.status, f.statut));

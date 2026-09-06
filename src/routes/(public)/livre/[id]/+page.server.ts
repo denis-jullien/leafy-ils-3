@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ params }) => {
 	// A few other titles by the same first author, for the "voir aussi" rail.
 	const firstAuthor = book.authors?.split(';')[0]?.trim();
 	const related = firstAuthor
-		? searchCatalogue(db, { q: firstAuthor, limit: 7 })
+		? searchCatalogue(db, { q: firstAuthor, limit: 7, fuzzy: false })
 				.filter((b) => b.id !== book.id)
 				.slice(0, 6)
 		: [];

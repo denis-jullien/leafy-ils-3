@@ -1,4 +1,5 @@
 import { asc, eq, like, sql } from 'drizzle-orm';
+import { squash } from '$lib/search';
 import type { z } from 'zod';
 import type { Db } from './db/client';
 import { families, loans, type Family } from './db/schema';
@@ -47,7 +48,7 @@ export function searchFamilies(db: Db, q: string, limit = 8): FamilyHit[] {
 		})
 		.from(families)
 		.leftJoin(loans, sql`${loans.familyId} = ${families.id} AND ${loans.returnedAt} IS NULL`)
-		.where(like(families.name, `%${term}%`))
+		.where(like(sql`squash(${families.name})`, `%${squash(term)}%`))
 		.groupBy(families.id)
 		.orderBy(asc(families.name))
 		.limit(limit)

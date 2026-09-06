@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, isNotNull, isNull, like, or, sql, type SQL } from 'drizzle-orm';
+import { squash } from '$lib/search';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { books, loans, shelves } from '$lib/server/db/schema';
@@ -59,10 +60,13 @@ export const load: PageServerLoad = async ({ url }) => {
 		filters.push(
 			isbn
 				? eq(books.isbn13, isbn)
-				: or(like(books.title, `%${f.title}%`), like(books.barcode, `%${f.title}%`))!
+				: or(
+						like(sql`squash(${books.title})`, `%${squash(f.title)}%`),
+						like(books.barcode, `%${f.title}%`)
+					)!
 		);
 	}
-	if (f.authors) filters.push(like(books.authors, `%${f.authors}%`));
+	if (f.authors) filters.push(like(sql`squash(${books.authors})`, `%${squash(f.authors)}%`));
 	if (f.year) filters.push(like(sql`cast(${books.publishedYear} as text)`, `${f.year}%`));
 	if (f.shelf === 'none') filters.push(isNull(books.shelfId));
 	else if (f.shelf) filters.push(eq(books.shelfId, Number(f.shelf)));

@@ -52,7 +52,9 @@
 			{#if data.searching}
 				<a class="sb-clear" href={href({ q: '' })}>Effacer la recherche « {data.q} »</a>
 			{:else}
-				<p class="sb-hint">Pas besoin des accents ni des majuscules.</p>
+				<p class="sb-hint">
+					Sans les accents, la ponctuation ni les majuscules ; une faute de frappe est tolérée.
+				</p>
 			{/if}
 		</form>
 	</div>

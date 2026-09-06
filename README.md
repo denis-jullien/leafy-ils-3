@@ -78,6 +78,19 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 
 Loan policy lives in `src/lib/config.ts` (21 days, 10 books per family, one renewal).
 
+## Search
+
+The public search box and the desk filters match loosely: both sides are lowercased,
+stripped of accents, punctuation and spaces before comparison, so "dgray" or "d. gray"
+find "D.Gray-man" and "pere noel" finds "Père Noël". That key is computed by a `squash`
+SQL function registered on the connection (`src/lib/search.ts`), so nothing has to be
+kept in sync. A multi-word query must match every word; titles that start with the
+query come first, then titles containing it, then authors. When nothing matches, the
+public search scores every title and author against the query with an edit distance and
+shows the near misses ("grey" still finds "Gray"), which is instant on a village
+catalogue. Full-text or semantic search were considered and set aside: they work on
+words or on meaning, not on the letters people actually type.
+
 ## ISBN lookup and covers
 
 `src/lib/server/metadata.ts` asks the providers in `ISBN_PROVIDERS` order and merges their
