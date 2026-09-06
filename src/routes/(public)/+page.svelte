@@ -7,14 +7,6 @@
 
 	let { data } = $props();
 
-	/** Build a home URL keeping the current query / shelf unless overridden. */
-	function href(over: { q?: string; rayon?: number | null }) {
-		const q = over.q ?? data.q;
-		const rayon = over.rayon === undefined ? data.rayon : over.rayon;
-		const parts = [q && `q=${encodeURIComponent(q)}`, rayon && `rayon=${rayon}`].filter(Boolean);
-		return `/${parts.length ? `?${parts.join('&')}` : ''}#nouveautes`;
-	}
-
 	const n = $derived(data.books.length);
 	const plural = $derived(n > 1 ? 's' : '');
 	const [leadBefore, leadAfter] = $derived(MEMBERSHIP.lead.split(MEMBERSHIP.highlight));
@@ -49,13 +41,6 @@
 				{#if data.rayon}<input type="hidden" name="rayon" value={data.rayon} />{/if}
 				<button class="sb-btn" type="submit">Rechercher</button>
 			</div>
-			{#if data.searching}
-				<a class="sb-clear" href={href({ q: '' })}>Effacer la recherche « {data.q} »</a>
-			{:else}
-				<p class="sb-hint">
-					Sans les accents, la ponctuation ni les majuscules ; une faute de frappe est tolérée.
-				</p>
-			{/if}
 		</form>
 	</div>
 </section>

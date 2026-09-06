@@ -259,30 +259,6 @@ html {
 	.sb-btn:active {
 		transform: translateY(1px);
 	}
-	.sb-hint {
-		margin: 0.6rem 0 0;
-		font-size: 0.92rem;
-		color: #f4fbf9;
-	}
-	.sb-clear {
-		display: inline-block;
-		margin-top: 0.6rem;
-		border: 2px solid #ffffff88;
-		background: transparent;
-		color: #fff;
-		font: inherit;
-		font-weight: 800;
-		font-size: 0.88rem;
-		padding: 0.45rem 1rem;
-		border-radius: 100px;
-		min-height: 44px;
-		line-height: 1.6;
-		text-decoration: none;
-	}
-	.sb-clear:hover {
-		background: #ffffff1f;
-	}
-
 	/* ——— Sections ——— */
 	.section {
 		padding: clamp(2.6rem, 5vw, 4.4rem) 0;
