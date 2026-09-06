@@ -85,8 +85,10 @@ answers, the first one winning per field: BnF (UNIMARC through SRU, with the sum
 a cover keyed by the record's ARK), Sudoc (UNIMARC, links to the BnF record), Google Books
 and Open Library. Cover candidates are fetched and checked: not an image, smaller than
 100 px, or a known placeholder means rejected. Google Books' key-free cover address is tried
-too, with its placeholder images filtered out. A web image search by ISBN is the last
-resort: `BRAVE_SEARCH_KEY` (Brave Search API, free tier) or, for those who still have
+too, with its placeholder images filtered out, as are ePagine (the image service behind
+French booksellers' sites, by far the best coverage for books distributed in France) and
+Inventaire.io. `COVER_SOURCES` sets the order and lets you drop a source. A web image search
+by ISBN is the last resort: `BRAVE_SEARCH_KEY` (Brave Search API, free tier) or, for those who still have
 access, Google's Custom Search JSON API (`GOOGLE_CSE_KEY` + `GOOGLE_CSE_ID`, closed to new
 customers). Without a key the form offers a "Chercher sur Google Images" link and a field to
 paste the image address.

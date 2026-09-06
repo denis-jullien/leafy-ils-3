@@ -169,8 +169,34 @@ const PLACEHOLDER_SIZES = new Set(['92x138', '1x1']);
 const PLACEHOLDER_HASHES = new Set([
 	'ba8cd5043eedf32e39a4f328a4ec22f8a7dbbaba', // 128×184 "image not available", zoom 1
 	'd42f3acc24f36b7e8a3337460d9545e3a22df51a', // 575×750 png, zoom 2
-	'cc7313f0f2ac7aa7bc990e3b8bbc9fddd0a19f70' // 128×170 png, unknown ISBN
+	'cc7313f0f2ac7aa7bc990e3b8bbc9fddd0a19f70', // 128×170 png, unknown ISBN
+	'3ad96db4d6f009bae1052492188ef485d69f83ed' // ePagine "pas d'image", 154×173 png
 ]);
+
+/**
+ * ePagine serves the cover images behind most French booksellers' sites and
+ * knows nearly every title distributed in France, at up to 600 px. Not a public
+ * API: drop it from COVER_SOURCES if its use is ever questioned.
+ */
+export const epagineCoverUrl = (isbn13: string) =>
+	`https://images.epagine.fr/${isbn13.slice(-3)}/${isbn13}_1_75.jpg`;
+
+/** Inventaire.io: open, community-run book database with covers, no key. */
+async function inventaireCover(
+	isbn13: string,
+	signal: AbortSignal
+): Promise<{ url: string; source: string }[]> {
+	const res = await get(
+		`https://inventaire.io/api/entities?action=by-uris&uris=isbn:${isbn13}`,
+		signal
+	);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const json = (await res.json()) as { entities?: Record<string, { image?: { url?: string } }> };
+	const img = Object.values(json.entities ?? {})[0]?.image?.url;
+	return img
+		? [{ url: img.startsWith('http') ? img : `https://inventaire.io${img}`, source: 'inventaire' }]
+		: [];
+}
 
 /** Cover straight from Google Books by ISBN, no API key and no quota. Placeholders are filtered. */
 export const googleCoverUrl = (isbn13: string, zoom: 1 | 2) =>
@@ -210,6 +236,8 @@ export async function verifyCover(url: string, signal: AbortSignal): Promise<boo
 		if (PLACEHOLDER_HASHES.has(createHash('sha1').update(buf).digest('hex'))) return false;
 		// Google's zoom-2 placeholder is a PNG at exactly this size; real covers are JPEGs.
 		if (size.type === 'png' && size.width === 575 && size.height === 750) return false;
+		// ePagine's placeholder, in case its bytes ever change.
+		if (size.type === 'png' && size.width === 154 && size.height === 173) return false;
 		const ok = size.width >= MIN_COVER_PX && size.height >= MIN_COVER_PX;
 		if (ok) rememberCover(url, buf);
 		return ok;
@@ -327,23 +355,33 @@ export async function lookupIsbn(
 	}
 	if (!merged && !opts.coverOnly) return null;
 
-	// Cover: candidates from the records first, then sources that work from the ISBN alone.
+	// Cover: candidates from the records first, then sources that work from the ISBN alone,
+	// in COVER_SOURCES order. Each candidate is verified before it wins.
 	const candidates = [...(merged?.covers ?? [])];
 	const seen = new Set<string>();
-	candidates.push({
-		url: `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg?default=false`,
-		source: 'openlibrary'
-	});
-	candidates.push(
-		{ url: googleCoverUrl(isbn13, 2), source: 'google' },
-		{ url: googleCoverUrl(isbn13, 1), source: 'google' }
-	);
-	for (const [name, fn] of [
-		['brave', braveImageCovers],
-		['googleimages', googleImageCovers]
-	] as const) {
+	const byIsbn: Record<string, (s: AbortSignal) => Promise<{ url: string; source: string }[]>> = {
+		epagine: async () => [{ url: epagineCoverUrl(isbn13), source: 'epagine' }],
+		openlibrary: async () => [
+			{
+				url: `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg?default=false`,
+				source: 'openlibrary'
+			}
+		],
+		google: async () => [
+			{ url: googleCoverUrl(isbn13, 2), source: 'google' },
+			{ url: googleCoverUrl(isbn13, 1), source: 'google' }
+		],
+		inventaire: (sig) => inventaireCover(isbn13, sig),
+		brave: (sig) => braveImageCovers(isbn13, sig),
+		googleimages: (sig) => googleImageCovers(isbn13, sig)
+	};
+	const order = (env.COVER_SOURCES ?? 'epagine,openlibrary,google,inventaire,brave,googleimages')
+		.split(',')
+		.map((x) => x.trim())
+		.filter((x) => x in byIsbn);
+	for (const name of order) {
 		try {
-			candidates.push(...(await withTimeout((s) => fn(isbn13, s))));
+			candidates.push(...(await withTimeout((sig) => byIsbn[name](sig))));
 		} catch (err) {
 			console.warn(`[isbn] ${name} failed for ${isbn13}:`, (err as Error).message);
 		}
