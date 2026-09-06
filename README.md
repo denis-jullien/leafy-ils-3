@@ -90,6 +90,14 @@ Google image search as a last resort.
 On the desk, **Chercher la notice** fills the empty fields of a book form, and the books
 list has **Chercher les couvertures manquantes**, which processes ten books per click.
 
+## Desk lists
+
+The books and families lists sort, filter and page on the server: the state lives in the
+URL (`?q=&sort=&dir=&page=` plus filters), SQLite does the work, and only the fifty rows
+shown are sent. Short fields are editable in place and save on their own through
+`PATCH /api/books/:id` and `PATCH /api/families/:id`, which accept only those fields:
+shelf, category, coup de cœur and state for books, phone and membership for families.
+
 ## Deploy to Fly.io
 
 ```sh

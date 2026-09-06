@@ -78,3 +78,23 @@ export const eventSchema = z.object({
 	description: optionalText,
 	free: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(true)
 });
+
+/** Fields editable straight from the books table. No defaults: a PATCH must only touch what it names. */
+export const bookQuickSchema = z
+	.object({
+		shelf: optionalText,
+		category: z.enum(CATEGORY_IDS, { error: 'Catégorie inconnue' }).nullable(),
+		featured: z.boolean({ error: 'Valeur invalide' }),
+		status: z.enum(['active', 'lost', 'withdrawn'], { error: 'État inconnu' })
+	})
+	.partial()
+	.strict();
+
+/** Fields editable straight from the families table. */
+export const familyQuickSchema = z
+	.object({
+		phone: optionalText,
+		status: z.enum(['active', 'inactive'], { error: 'Abonnement inconnu' })
+	})
+	.partial()
+	.strict();
