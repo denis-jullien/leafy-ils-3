@@ -10,7 +10,7 @@
 	{#if data.user}
 		<AppNav user={data.user} />
 	{/if}
-	<main class="mx-auto w-full max-w-6xl px-4 py-6">
+	<main class="mx-auto w-full max-w-[1440px] px-4 py-6">
 		{@render children()}
 	</main>
 	<Toaster position="bottom-right" richColors closeButton duration={3500} />

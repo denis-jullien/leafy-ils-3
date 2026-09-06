@@ -66,15 +66,15 @@
 				name="dir"
 				value={data.dir}
 			/>{/if}
-		<Table.Root>
+		<Table.Root class="table-fixed">
 			<Table.Header>
 				<Table.Row>
-					<SortHead key="title" label="Titre" sort={data.sort} dir={data.dir} />
-					<SortHead key="authors" label="Auteurs" sort={data.sort} dir={data.dir} />
-					<SortHead key="year" label="Année" sort={data.sort} dir={data.dir} />
-					<SortHead key="shelf" label="Rayon" sort={data.sort} dir={data.dir} />
-					<Table.Head title="Coup de cœur">♥</Table.Head>
-					<SortHead key="status" label="État" sort={data.sort} dir={data.dir} />
+					<SortHead key="title" label="Titre" sort={data.sort} dir={data.dir} class="w-[34%]" />
+					<SortHead key="authors" label="Auteurs" sort={data.sort} dir={data.dir} class="w-[22%]" />
+					<SortHead key="year" label="Année" sort={data.sort} dir={data.dir} class="w-[7%]" />
+					<SortHead key="shelf" label="Rayon" sort={data.sort} dir={data.dir} class="w-[15%]" />
+					<Table.Head title="Coup de cœur" class="w-[5%]">♥</Table.Head>
+					<SortHead key="status" label="État" sort={data.sort} dir={data.dir} class="w-[17%]" />
 				</Table.Row>
 				<Table.Row class="filter-row">
 					<Table.Head>
@@ -143,14 +143,16 @@
 			<Table.Body>
 				{#each data.rows as { book, onLoanTo, dueAt } (book.id)}
 					<Table.Row>
-						<Table.Cell>
+						<Table.Cell class="cell-wrap">
 							<a class="font-medium underline" href="/books/{book.id}">{book.title}</a>
 							{#if !book.coverUrl}<span
 									class="ml-1 text-xs text-muted-foreground"
 									title="Pas de couverture">◌</span
 								>{/if}
 						</Table.Cell>
-						<Table.Cell>{book.authors ?? ''}</Table.Cell>
+						<Table.Cell class="cell-clip" title={book.authors ?? ''}
+							>{book.authors ?? ''}</Table.Cell
+						>
 						<Table.Cell>{book.publishedYear ?? ''}</Table.Cell>
 						<Table.Cell>
 							<QuickField

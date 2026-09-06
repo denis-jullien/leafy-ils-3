@@ -88,6 +88,20 @@
 		border-radius: 0;
 		padding: 0;
 	}
+	/* Fixed-layout list tables: long text wraps in the title column, is clipped elsewhere */
+	.cell-wrap {
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+	.cell-clip {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.quick,
+	.quick-input {
+		max-width: 100%;
+	}
 	[data-slot='table-row']:hover {
 		background: color-mix(in srgb, var(--surface-alt) 60%, transparent);
 	}

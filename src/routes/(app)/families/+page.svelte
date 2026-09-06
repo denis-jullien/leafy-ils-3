@@ -28,14 +28,32 @@
 				name="dir"
 				value={data.dir}
 			/>{/if}
-		<Table.Root>
+		<Table.Root class="table-fixed">
 			<Table.Header>
 				<Table.Row>
-					<SortHead key="name" label="Famille" sort={data.sort} dir={data.dir} />
-					<SortHead key="contact" label="Téléphone" sort={data.sort} dir={data.dir} />
-					<Table.Head>Email</Table.Head>
-					<SortHead key="open" label="Livres en prêt" sort={data.sort} dir={data.dir} />
-					<SortHead key="status" label="Abonnement" sort={data.sort} dir={data.dir} />
+					<SortHead key="name" label="Famille" sort={data.sort} dir={data.dir} class="w-[32%]" />
+					<SortHead
+						key="contact"
+						label="Téléphone"
+						sort={data.sort}
+						dir={data.dir}
+						class="w-[18%]"
+					/>
+					<Table.Head class="w-[25%]">Email</Table.Head>
+					<SortHead
+						key="open"
+						label="Livres en prêt"
+						sort={data.sort}
+						dir={data.dir}
+						class="w-[10%]"
+					/>
+					<SortHead
+						key="status"
+						label="Abonnement"
+						sort={data.sort}
+						dir={data.dir}
+						class="w-[15%]"
+					/>
 				</Table.Row>
 				<Table.Row class="filter-row">
 					<Table.Head
@@ -87,7 +105,7 @@
 			<Table.Body>
 				{#each data.rows as { family, open } (family.id)}
 					<Table.Row>
-						<Table.Cell
+						<Table.Cell class="cell-wrap"
 							><a class="font-medium underline" href="/families/{family.id}">{family.name}</a
 							></Table.Cell
 						>
@@ -100,7 +118,9 @@
 								label="Téléphone"
 							/>
 						</Table.Cell>
-						<Table.Cell class="text-sm">{family.email ?? ''}</Table.Cell>
+						<Table.Cell class="cell-clip text-sm" title={family.email ?? ''}
+							>{family.email ?? ''}</Table.Cell
+						>
 						<Table.Cell>{open}</Table.Cell>
 						<Table.Cell>
 							<QuickField

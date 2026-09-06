@@ -29,7 +29,7 @@
 </script>
 
 <header class="desk-header">
-	<div class="desk-header-inner mx-auto max-w-6xl px-4">
+	<div class="desk-header-inner mx-auto max-w-[1440px] px-4">
 		<a href="/desk" class="desk-brand">
 			<Logo size={40} />
 			<span class="desk-brand-text">
