@@ -53,7 +53,7 @@ export const MEMBERSHIP = {
 	highlight: 'gratuite',
 	points: [
 		'Un exemplaire par titre — premier arrivé, premier servi',
-		'Emprunt de 4 livres pour 3 semaines',
+		'Prêts pour deux mois, autant de livres que vous voulez',
 		'Consultation du catalogue sur place & en ligne',
 		'Espace jeux et coin lecture enfants'
 	]

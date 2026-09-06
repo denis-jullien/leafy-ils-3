@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, lt, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import { books, families, loans, type Book, type Family, type Loan } from './db/schema';
-import { LOAN_DAYS, MAX_LOANS_PER_FAMILY, MAX_RENEWALS } from '$lib/config';
+import { LOAN_MONTHS, MAX_LOANS_PER_FAMILY, MAX_RENEWALS } from '$lib/config';
 import { normalizeRfidUid, parseBookBarcode, parseFamilyBarcode } from '$lib/barcodes';
 import { parseIsbn } from '$lib/isbn';
 import { BOOK_STATUS } from '$lib/labels';
@@ -97,9 +97,13 @@ export function resolveCode(db: Db, raw: string): Resolved {
 	return { kind: 'book', book, openLoan: openLoanOf(db, book.id) };
 }
 
-export function dueDate(from = new Date(), days = LOAN_DAYS) {
+/** The same day `months` later (clamped to the end of a shorter month), at the end of that day. */
+export function dueDate(from = new Date(), months = LOAN_MONTHS) {
 	const d = new Date(from);
-	d.setDate(d.getDate() + days);
+	const day = d.getDate();
+	d.setDate(1);
+	d.setMonth(d.getMonth() + months);
+	d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
 	d.setHours(23, 59, 59, 0);
 	return d;
 }
@@ -126,7 +130,7 @@ export function checkout(db: Db, input: CheckoutInput): Loan[] {
 				.from(loans)
 				.where(and(eq(loans.familyId, family.id), isNull(loans.returnedAt)))
 				.get()?.n ?? 0;
-		if (openCount + input.bookIds.length > MAX_LOANS_PER_FAMILY)
+		if (MAX_LOANS_PER_FAMILY !== null && openCount + input.bookIds.length > MAX_LOANS_PER_FAMILY)
 			throw new CirculationError(
 				'LOAN_LIMIT',
 				`${family.name} a déjà ${openCount} livre(s) en prêt (maximum ${MAX_LOANS_PER_FAMILY})`

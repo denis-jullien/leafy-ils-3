@@ -4,9 +4,9 @@ import { runMigrations } from './db/migrate';
 import { eq } from 'drizzle-orm';
 import { books, families } from './db/schema';
 import { familyBarcode } from '$lib/barcodes';
-import { MAX_LOANS_PER_FAMILY } from '$lib/config';
 import {
 	checkout,
+	dueDate,
 	CirculationError,
 	renewLoan,
 	resolveCode,
@@ -72,11 +72,20 @@ describe('checkout / return', () => {
 		expect(checkout(db, { familyId: other, bookIds: [book] })).toHaveLength(1);
 	});
 
-	it('is all-or-nothing and enforces the family limit', () => {
-		const fam = addFamily('Petit');
-		const ids = Array.from({ length: MAX_LOANS_PER_FAMILY + 1 }, (_, i) => addBook(`Book ${i}`));
-		expect(() => checkout(db, { familyId: fam, bookIds: ids })).toThrowError(/maximum/);
-		expect(overdueLoans(db, new Date(Date.now() + 365 * 86400_000))).toHaveLength(0);
+	it('sets no limit on how many books a family holds', () => {
+		const fam = addFamily('Grande');
+		const ids = Array.from({ length: 25 }, (_, i) => addBook(`Book ${i}`));
+		expect(checkout(db, { familyId: fam, bookIds: ids })).toHaveLength(25);
+	});
+
+	it('gives two months, to the same day of the month, clamped for short months', () => {
+		expect(dueDate(new Date(2026, 8, 6, 10, 0)).getTime()).toBe(
+			new Date(2026, 10, 6, 23, 59, 59).getTime()
+		);
+		// 31 December + 2 months → 28 February.
+		expect(dueDate(new Date(2026, 11, 31, 10, 0)).getTime()).toBe(
+			new Date(2027, 1, 28, 23, 59, 59).getTime()
+		);
 	});
 
 	it('refuses inactive families and non-active books', () => {

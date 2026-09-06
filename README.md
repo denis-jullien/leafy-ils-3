@@ -74,7 +74,7 @@ hours with today highlighted, address, contact and how to join. It needs no logi
   else an internal `B000123` label printed from the book page. RFID tag UIDs are stored on
   the book (`rfid_uid`). Duplicates are rejected by unique indexes.
 
-Loan policy lives in `src/lib/config.ts` (21 days, 10 books per family, one renewal).
+Loan policy lives in `src/lib/config.ts` (two months, no limit per family, one renewal).
 
 ## Search
 

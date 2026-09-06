@@ -379,7 +379,8 @@
 								>{/if}
 						</div>
 						<div class="text-sm text-muted-foreground">
-							{family.openLoans.length} sur {data.policy.maxLoans} en prêt
+							{family.openLoans.length}{data.policy.maxLoans ? ` sur ${data.policy.maxLoans}` : ''} en
+							prêt
 						</div>
 						<ul class="space-y-1 text-sm">
 							{#each family.openLoans as l (l.id)}
@@ -430,7 +431,6 @@
 						? ` à ${family.family.name}`
 						: ''}
 				</Button>
-				<p class="text-xs text-muted-foreground">À rendre sous {data.policy.loanDays} jours.</p>
 			</Card.Content>
 		</Card.Root>
 
