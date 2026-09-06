@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { languageFromIsbn } from '$lib/isbn';
+import { looksBlank } from './cover-check';
 import { imageSize } from './image-size';
 import { invLabel, parseInventaire, RELATIVES, type InvEntity } from './inventaire';
 import { parseUnimarc, unimarcToBook } from './unimarc';
@@ -214,8 +215,11 @@ const PLACEHOLDER_HASHES = new Set([
 	'ba8cd5043eedf32e39a4f328a4ec22f8a7dbbaba', // 128×184 "image not available", zoom 1
 	'd42f3acc24f36b7e8a3337460d9545e3a22df51a', // 575×750 png, zoom 2
 	'cc7313f0f2ac7aa7bc990e3b8bbc9fddd0a19f70', // 128×170 png, unknown ISBN
+	'bc6a3a797b93ed6aa75aa73b206e1582bbd9496d', // 300×391 png, zoom 2 of a volume that only has a thumbnail
 	'3ad96db4d6f009bae1052492188ef485d69f83ed' // ePagine "pas d'image", 154×173 png
 ]);
+/** Below this width a cover is kept only if nothing larger turns up. */
+const SMALL_COVER_PX = 250;
 
 /**
  * ePagine serves the cover images behind most French booksellers' sites and
@@ -264,24 +268,30 @@ function rememberCover(url: string, bytes: Uint8Array) {
 }
 
 /** Fetch the image and accept it only if it decodes to a real cover. */
-export async function verifyCover(url: string, signal: AbortSignal): Promise<boolean> {
+/** Fetches a candidate and answers its size when it is a real cover, null otherwise. */
+export async function verifyCover(
+	url: string,
+	signal: AbortSignal
+): Promise<{ width: number; height: number } | null> {
 	try {
 		const res = await get(url, signal);
-		if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) return false;
+		if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) return null;
 		const buf = new Uint8Array(await res.arrayBuffer());
 		const size = imageSize(buf);
-		if (!size) return false;
-		if (PLACEHOLDER_SIZES.has(`${size.width}x${size.height}`)) return false;
-		if (PLACEHOLDER_HASHES.has(createHash('sha1').update(buf).digest('hex'))) return false;
+		if (!size) return null;
+		if (PLACEHOLDER_SIZES.has(`${size.width}x${size.height}`)) return null;
+		if (PLACEHOLDER_HASHES.has(createHash('sha1').update(buf).digest('hex'))) return null;
 		// Google's zoom-2 placeholder is a PNG at exactly this size; real covers are JPEGs.
-		if (size.type === 'png' && size.width === 575 && size.height === 750) return false;
+		if (size.type === 'png' && size.width === 575 && size.height === 750) return null;
 		// ePagine's placeholder, in case its bytes ever change.
-		if (size.type === 'png' && size.width === 154 && size.height === 173) return false;
-		const ok = size.width >= MIN_COVER_PX && size.height >= MIN_COVER_PX;
-		if (ok) rememberCover(url, buf);
-		return ok;
+		if (size.type === 'png' && size.width === 154 && size.height === 173) return null;
+		if (size.width < MIN_COVER_PX || size.height < MIN_COVER_PX) return null;
+		// Google draws "image not available" on demand at any size: catch it by its look.
+		if (await looksBlank(buf)) return null;
+		rememberCover(url, buf);
+		return { width: size.width, height: size.height };
 	} catch {
-		return false;
+		return null;
 	}
 }
 
@@ -425,15 +435,22 @@ export async function lookupIsbn(
 			console.warn(`[isbn] ${name} failed for ${isbn13}:`, (err as Error).message);
 		}
 	}
+	// First real cover of a decent size wins. A thumbnail-sized one (Google often
+	// has only that) is kept aside and used if nothing larger turns up.
 	let cover: { url: string; source: string } | undefined;
+	let small: { url: string; source: string } | undefined;
 	for (const c of candidates) {
 		if (seen.has(c.url)) continue;
 		seen.add(c.url);
-		if (await withTimeout((s) => verifyCover(c.url, s))) {
+		const size = await withTimeout((s) => verifyCover(c.url, s));
+		if (!size) continue;
+		if (size.width >= SMALL_COVER_PX) {
 			cover = c;
 			break;
 		}
+		small ??= c;
 	}
+	cover ??= small;
 
 	return {
 		isbn13,
