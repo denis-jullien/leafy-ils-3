@@ -5,9 +5,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
-	import ScannerPanel from '$lib/components/ScannerPanel.svelte';
-	import { Scanners } from '$lib/scan/use-scanners.svelte';
-	import type { ScanEvent } from '$lib/scan';
+	import { KeyboardWedgeSource, type ScanEvent } from '$lib/scan';
 	import type { OpenLoan, Resolved } from '$lib/server/circulation';
 	import type { Book } from '$lib/server/db/schema';
 	import type { FamilyHit } from '$lib/server/families';
@@ -35,8 +33,6 @@
 	let highlighted = $state(0);
 	let searchSeq = 0;
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
-
-	const scanners = new Scanners();
 
 	function say(tone: LogEntry['tone'], text: string, href?: string) {
 		log = [{ id: ++logSeq, tone, text, href }, ...log].slice(0, 30);
@@ -300,9 +296,11 @@
 	}
 
 	onMount(() => {
-		const cleanup = scanners.attach((ev: ScanEvent) => void handleCode(ev.code));
+		// A barcode scanner in keyboard mode: it types the code and presses Enter.
+		const scanner = new KeyboardWedgeSource();
+		scanner.start((ev: ScanEvent) => void handleCode(ev.code));
 		if (data.initialCode) void handleCode(data.initialCode);
-		return cleanup;
+		return () => scanner.stop();
 	});
 </script>
 
@@ -500,6 +498,4 @@
 			</Card.Content>
 		</Card.Root>
 	</div>
-
-	<ScannerPanel {scanners} />
 </div>

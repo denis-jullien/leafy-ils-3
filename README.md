@@ -64,14 +64,12 @@ hours with today highlighted, address, contact and how to join. It needs no logi
   to a returns list, applied together with **Valider**. Nothing is recorded before that.
 - **Barcode scanners** work out of the box: a USB scanner types the code and presses
   Enter. The page also listens for that burst of keystrokes when no field is focused.
-- **RFID readers**: three options, all behind the same `ScanSource` interface in
-  `src/lib/scan/`.
-  1. A reader in keyboard-wedge mode needs nothing.
-  2. RS232 / USB-serial readers connect straight from Chrome or Edge through the Web
-     Serial API (**Readers** panel on the circulation page).
-  3. TCP/IP readers (or serial readers on other browsers) go through
-     [`tools/reader-bridge`](tools/reader-bridge/README.md), a tiny Node program on the
-     library PC that relays reads to the page over `ws://localhost:8787`.
+  That is the only reader wired to the desk for now.
+- **RFID readers**, for later: the same `ScanSource` interface in `src/lib/scan/` has a
+  Web Serial source (RS232 / USB-serial from Chrome or Edge) and a WebSocket source fed by
+  [`tools/reader-bridge`](tools/reader-bridge/README.md), a tiny Node program relaying
+  TCP/IP readers over `ws://localhost:8787`. Neither is exposed in the interface yet;
+  a reader in keyboard-wedge mode works today like a barcode scanner.
 - **Books** are one row per physical copy. The barcode is the ISBN-13 when there is one,
   else an internal `B000123` label printed from the book page. RFID tag UIDs are stored on
   the book (`rfid_uid`). Duplicates are rejected by unique indexes.
@@ -182,8 +180,8 @@ library with Tailscale is a fine alternative if the internet connection is unrel
 ```
 src/lib/server/db/         schema, client, migrations runner
 src/lib/server/            auth, circulation rules, books/families persistence, ISBN metadata
-src/lib/scan/              ScanSource abstraction: keyboard wedge, Web Serial, bridge
-src/lib/components/        forms, barcode, scanner panel, nav
+src/lib/scan/              ScanSource abstraction: keyboard wedge (used), Web Serial, bridge
+src/lib/components/        forms, barcode, nav
 src/routes/(public)/       welcome page and public book pages
 src/routes/(app)/          desk: dashboard, circulation, books, families, admin
 src/routes/api/            JSON endpoints used by the circulation page
