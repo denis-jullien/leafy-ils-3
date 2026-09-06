@@ -9,6 +9,8 @@
 	import { parseIsbn } from '$lib/isbn';
 	import { BOOK_STATUS } from '$lib/labels';
 	import type { BookMetadata } from '$lib/server/metadata';
+	import { localModel } from '$lib/embed/local-model.svelte';
+	import { confidenceLabel, proposeShelfLocally } from '$lib/embed/classify';
 
 	type Data = z.infer<typeof bookSchema>;
 	let {
@@ -68,7 +70,10 @@
 				$form.shelfId = m.suggestedShelf.id;
 				shelfNote = `Rayon proposé : ${m.suggestedShelf.name} (${m.suggestedShelf.reason})`;
 			} else if (!m.suggestedShelf && !$form.shelfId) {
-				shelfNote = 'Aucun rayon ne correspond aux règles ; choisissez-le à la main.';
+				shelfNote = localModel.enabled
+					? 'Aucune règle ne correspond ; le modèle local cherche…'
+					: 'Aucun rayon ne correspond aux règles ; choisissez-le à la main.';
+				if (localModel.enabled) void proposeLocally(m);
 			}
 			const cover = m.coverUrl ? `, couverture ${m.coverSource}` : ', pas de couverture trouvée';
 			lookupNote = m.sources.length
@@ -78,6 +83,28 @@
 			lookupNote = `Recherche impossible : ${(e as Error).message}`;
 		} finally {
 			looking = false;
+		}
+	}
+
+	/** Second opinion from the in-browser model, only when the rules found nothing. */
+	async function proposeLocally(m: BookMetadata) {
+		try {
+			const p = await proposeShelfLocally({
+				title: m.title,
+				authors: m.authors,
+				publisher: m.publisher,
+				description: m.description,
+				subjects: m.subjects
+			});
+			if (!p) {
+				shelfNote = 'Aucun rayon ne correspond ; choisissez-le à la main.';
+				return;
+			}
+			if (!$form.shelfId && p.confidence !== 'unsure') $form.shelfId = p.shelfId;
+			const alt = p.runnerUpName ? `, sinon ${p.runnerUpName}` : '';
+			shelfNote = `Modèle local : ${p.shelfName} (${confidenceLabel[p.confidence]}${alt})${p.confidence === 'unsure' ? ' — à choisir à la main' : ''}`;
+		} catch {
+			shelfNote = 'Modèle local indisponible ; choisissez le rayon à la main.';
 		}
 	}
 

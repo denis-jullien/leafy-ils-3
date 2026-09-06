@@ -4,6 +4,8 @@ import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
+	// transformers.js ships its own WASM/WebGPU runtime and must not be pre-bundled.
+	optimizeDeps: { exclude: ['@huggingface/transformers'] },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

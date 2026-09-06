@@ -22,6 +22,7 @@ export interface ShelfInput {
 	name: string;
 	keywords?: string | null;
 	dewey?: string | null;
+	description?: string | null;
 }
 
 export function createShelf(db: Db, input: ShelfInput): Shelf {

@@ -26,7 +26,8 @@ const readShelf = async (request: Request) => {
 		id: Number(fd.get('id')),
 		name: String(fd.get('name') ?? '').trim(),
 		keywords: String(fd.get('keywords') ?? '').trim() || null,
-		dewey: String(fd.get('dewey') ?? '').trim() || null
+		dewey: String(fd.get('dewey') ?? '').trim() || null,
+		description: String(fd.get('description') ?? '').trim() || null
 	};
 };
 
@@ -45,7 +46,12 @@ export const actions: Actions = {
 		const s = await readShelf(request);
 		if (!s.name) return fail(400, { error: 'Le nom est obligatoire.' });
 		try {
-			updateShelf(db, s.id, { name: s.name, keywords: s.keywords, dewey: s.dewey });
+			updateShelf(db, s.id, {
+				name: s.name,
+				keywords: s.keywords,
+				dewey: s.dewey,
+				description: s.description
+			});
 		} catch {
 			return fail(400, { error: 'Un rayon porte déjà ce nom.' });
 		}
@@ -73,6 +79,8 @@ export const actions: Actions = {
 			test: {
 				isbn,
 				title: meta.title,
+				authors: meta.authors,
+				description: meta.description ?? null,
 				subjects: meta.subjects,
 				dewey: meta.dewey,
 				shelf: match?.shelf.name ?? null,

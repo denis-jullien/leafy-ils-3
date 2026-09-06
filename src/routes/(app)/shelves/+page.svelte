@@ -6,6 +6,10 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
 	import { ArrowDown, ArrowUp } from '@lucide/svelte';
+	import LocalModelCard from '$lib/components/LocalModelCard.svelte';
+	import BatchShelver from '$lib/components/BatchShelver.svelte';
+	import { localModel } from '$lib/embed/local-model.svelte';
+	import { confidenceLabel, proposeShelfLocally, type LocalProposal } from '$lib/embed/classify';
 
 	let { data, form: actionData } = $props();
 	// svelte-ignore state_referenced_locally
@@ -17,6 +21,25 @@
 		submitting
 	} = superForm(data.form, { resetForm: true });
 	let testing = $state(false);
+	let localResult = $state<LocalProposal | null | 'error'>(null);
+
+	// When the server test comes back and the local model is on, ask it too.
+	$effect(() => {
+		const t = actionData && 'test' in actionData ? actionData.test : null;
+		if (!t || 'error' in t || !localModel.enabled) {
+			localResult = null;
+			return;
+		}
+		localResult = null;
+		proposeShelfLocally({
+			title: t.title,
+			authors: t.authors,
+			description: t.description,
+			subjects: t.subjects
+		})
+			.then((p) => (localResult = p))
+			.catch(() => (localResult = 'error'));
+	});
 </script>
 
 <div class="space-y-6">
@@ -111,6 +134,15 @@
 									: 'Enregistrer'}
 							</Button>
 						</div>
+						<div class="space-y-1 md:col-span-4">
+							<Label for="desc-{shelf.id}">Description (pour le modèle local)</Label>
+							<Input
+								id="desc-{shelf.id}"
+								name="description"
+								value={shelf.description ?? ''}
+								placeholder="Une phrase : ce qu'on range ici."
+							/>
+						</div>
 					</form>
 					<form
 						method="post"
@@ -159,6 +191,15 @@
 						<Label for="new-dw">Dewey</Label>
 						<Input id="new-dw" name="dewey" bind:value={$form.dewey} placeholder="" />
 					</div>
+					<div class="space-y-1">
+						<Label for="new-desc">Description (pour le modèle local)</Label>
+						<Input
+							id="new-desc"
+							name="description"
+							bind:value={$form.description}
+							placeholder="Romans pour adolescents et jeunes adultes."
+						/>
+					</div>
 					{#if $message}<p class="text-sm">{$message}</p>{/if}
 					<Button type="submit" disabled={$submitting}>Ajouter</Button>
 				</form>
@@ -203,6 +244,19 @@
 								{#if t.shelf}<strong>{t.shelf}</strong>
 									<span class="text-muted-foreground">({t.reason})</span>{:else}<em>aucun</em>{/if}
 							</p>
+							{#if localModel.enabled}
+								<p>
+									Modèle local :
+									{#if localResult === 'error'}<span class="text-destructive">indisponible</span>
+									{:else if localResult}<strong>{localResult.shelfName}</strong>
+										<span class="text-muted-foreground">
+											({confidenceLabel[localResult.confidence]}, {localResult.score.toFixed(
+												2
+											)}{localResult.runnerUpName ? `, sinon ${localResult.runnerUpName}` : ''})
+										</span>
+									{:else}<span class="text-muted-foreground">calcul…</span>{/if}
+								</p>
+							{/if}
 							<p class="text-muted-foreground">
 								Sujets et signaux : {t.subjects.length ? t.subjects.join(' · ') : '—'}
 							</p>
@@ -214,5 +268,10 @@
 				{/if}
 			</Card.Content>
 		</Card.Root>
+	</div>
+
+	<div class="grid gap-6 lg:grid-cols-2">
+		<LocalModelCard />
+		<BatchShelver />
 	</div>
 </div>

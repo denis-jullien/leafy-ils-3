@@ -102,6 +102,19 @@ Dewey prefixes or ranges matched against the record's class number. Rayons are t
 order and the first match wins, so the order is editable too. The Rayons page has a tester:
 paste an ISBN and see the signals and the proposal. Logic lives in `src/lib/classify.ts`.
 
+### Optional local model (in the browser)
+
+When the rules find nothing, a small multilingual embedding model can propose a rayon. It
+runs in the browser through transformers.js (`Xenova/multilingual-e5-small`, about 120 MB
+downloaded once, WebGPU when available, CPU otherwise), so the server stays tiny and no data
+leaves the machine. Switch it on per browser from the Rayons page; meant for a laptop during
+cataloguing, not for the desk tablet. It compares the book (title, authors, subject headings,
+and the blurb with a lower weight) with each rayon's description and with summarised books
+already on that rayon, and reports a confidence from the margin over the runner-up. Only
+rayons described by at least a sentence take part, and richer descriptions with familiar
+series and authors make it markedly more accurate. The Rayons page also offers a batch pass
+over unshelved books with a review table before anything is saved. Code in `src/lib/embed/`.
+
 ## Desk lists
 
 The books and families lists sort, filter and page on the server: the state lives in the

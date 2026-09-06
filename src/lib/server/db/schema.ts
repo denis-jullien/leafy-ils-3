@@ -60,6 +60,8 @@ export const shelves = sqliteTable(
 		keywords: text('keywords'),
 		/** Comma-separated Dewey prefixes ("741.5") or ranges ("800-899"). */
 		dewey: text('dewey'),
+		/** One sentence describing the shelf, used by the optional local embedding model. */
+		description: text('description'),
 		...timestamps
 	},
 	(t) => [index('shelves_position_idx').on(t.position)]

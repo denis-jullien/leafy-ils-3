@@ -102,5 +102,6 @@ export const familyQuickSchema = z
 export const shelfSchema = z.object({
 	name: z.string().trim().min(1, 'Le nom est obligatoire'),
 	keywords: optionalText,
-	dewey: optionalText
+	dewey: optionalText,
+	description: optionalText
 });
