@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { message, setError, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import type { Actions, PageServerLoad } from './$types';
@@ -43,6 +43,8 @@ export const actions: Actions = {
 			// The book exists; the cover can be fixed from its page.
 			if (!(err instanceof CoverError)) throw err;
 		}
-		redirect(303, `/books/${book.id}`);
+		// Stay here: the volunteer usually has a pile of books to add. The toast links
+		// to the new record for the odd correction.
+		return message(form, { text: `Livre ajouté : ${book.title}`, bookId: book.id });
 	}
 };
