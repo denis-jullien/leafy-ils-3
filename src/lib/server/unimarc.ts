@@ -106,11 +106,16 @@ export function unimarcToBook(fields: UnimarcField[]): UnimarcBook | null {
 	const partTitle = first(fields, '200', 'i');
 	if (partTitle) parts.push(`, ${partTitle}`);
 
-	// 700/701 = main and co-authors as "Surname $a, Forename $b"; 200$f is the free-text statement.
-	const authors = fields
-		.filter((f) => f.tag === '700' || f.tag === '701')
-		.map((f) => [f.sub.b?.[0], f.sub.a?.[0]].filter(Boolean).join(' ').trim())
-		.filter(Boolean);
+	// 700/701 = main and co-authors as "Surname $a, Forename $b". Picture books and
+	// comics often have nobody there and only a 702 (secondary responsibility:
+	// illustrator, adapter...). 200$f, the free-text statement, is the last resort.
+	const persons = (...tags: string[]) =>
+		fields
+			.filter((f) => tags.includes(f.tag))
+			.map((f) => [f.sub.b?.[0], f.sub.a?.[0]].filter(Boolean).join(' ').trim())
+			.filter(Boolean);
+	let authors = persons('700', '701');
+	if (authors.length === 0) authors = persons('702');
 	if (authors.length === 0) {
 		const statement = first(fields, '200', 'f');
 		if (statement)

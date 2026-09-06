@@ -31,6 +31,29 @@ describe('parseInventaire', () => {
 		expect(parsed.labelIds.every((id) => id.startsWith('wd:'))).toBe(true);
 	});
 
+	it('counts the scenarist and the artists of a comic as its authors', () => {
+		const comic: Record<string, InvEntity> = {
+			'inv:ed': {
+				type: 'edition',
+				labels: { fromclaims: 'Perché' },
+				claims: { 'wdt:P1476': ['Perché'], 'wdt:P629': ['inv:wk'], 'wdt:P577': ['2022'] }
+			},
+			'inv:wk': {
+				type: 'work',
+				labels: { fr: 'Perché' },
+				claims: { 'wdt:P58': ['inv:a', 'inv:b'], 'wdt:P10837': ['inv:c'], 'wdt:P6338': ['inv:c'] }
+			},
+			'inv:a': { type: 'human', labels: { fr: 'Noël Chanat' } },
+			'inv:b': { type: 'human', labels: { fr: 'Kévin Mantovani' } },
+			'inv:c': { type: 'human', labels: { fr: 'Remingo' } }
+		};
+		expect(parseInventaire(comic)!.record.authors).toEqual([
+			'Noël Chanat',
+			'Kévin Mantovani',
+			'Remingo'
+		]);
+	});
+
 	it('answers null when Inventaire has no edition', () => {
 		expect(parseInventaire({})).toBeNull();
 		expect(parseInventaire({ 'wd:Q1': { type: 'work', labels: { fr: 'X' } } })).toBeNull();

@@ -53,6 +53,14 @@ describe('unimarc', () => {
 		});
 	});
 
+	it('falls back to the secondary responsibility (702) when there is no 700/701', () => {
+		const rec = `<srw:record><srw:recordData><mxc:record>
+<mxc:datafield tag="200" ind1="1" ind2=" "><mxc:subfield code="a">Bravo, les formes !</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="702" ind1=" " ind2="|"><mxc:subfield code="3">18250065</mxc:subfield><mxc:subfield code="a">Sasagawa</mxc:subfield><mxc:subfield code="b">Isamu</mxc:subfield></mxc:datafield>
+</mxc:record></srw:recordData></srw:record>`;
+		expect(unimarcToBook(parseUnimarc(rec))!.authors).toEqual(['Isamu Sasagawa']);
+	});
+
 	it('returns null without a title', () => {
 		expect(unimarcToBook(parseUnimarc('<record></record>'))).toBeNull();
 	});

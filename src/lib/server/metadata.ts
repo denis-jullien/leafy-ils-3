@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { languageFromIsbn } from '$lib/isbn';
 import { imageSize } from './image-size';
-import { invLabel, parseInventaire, type InvEntity } from './inventaire';
+import { invLabel, parseInventaire, RELATIVES, type InvEntity } from './inventaire';
 import { parseUnimarc, unimarcToBook } from './unimarc';
 
 /**
@@ -129,7 +129,8 @@ const google: Provider = async (isbn13, signal) => {
 
 /* ---------- Inventaire.io: open book database on top of Wikidata ---------- */
 // Documented API (api.inventaire.io): one call returns the edition and, through
-// `relatives`, its work (P629), the work's authors (P50) and the publisher (P123).
+// `relatives`, its work (P629), the work's authors, scenarist, illustrator and
+// penciller (P50, P58, P110, P10837) and the publisher (P123).
 // Genres (P136) and main subjects (P921) come as Wikidata ids; a second call turns
 // them into French labels, which is what the shelf rules match on.
 const INVENTAIRE = 'https://inventaire.io/api/entities/by-uris';
@@ -147,9 +148,7 @@ async function inventaireEntities(
 }
 
 const inventaire: Provider = async (isbn13, signal) => {
-	const ents = await inventaireEntities([`isbn:${isbn13}`], signal, {
-		relatives: 'wdt:P50|wdt:P629|wdt:P123'
-	});
+	const ents = await inventaireEntities([`isbn:${isbn13}`], signal, { relatives: RELATIVES });
 	const parsed = parseInventaire(ents);
 	if (!parsed) return null;
 	const { record, labelIds } = parsed;

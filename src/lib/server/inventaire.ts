@@ -2,8 +2,9 @@
  * Inventaire.io entities (https://api.inventaire.io, "Entities"): the parsing half
  * of the provider, kept free of network and env so it can be tested on a fixture.
  * Claims use Wikidata properties: P1476 title, P1680 subtitle, P577 publication
- * date, P1104 pages, P407 language, P629 work, P50 author, P123 publisher,
- * P136 genre, P921 main subject, P268 BnF record id.
+ * date, P1104 pages, P407 language, P629 work, P50 author (P58 scenarist, P110
+ * illustrator, P10837 penciller), P123 publisher, P136 genre, P921 main subject,
+ * P268 BnF record id.
  */
 export interface InvEntity {
 	type?: string;
@@ -41,6 +42,11 @@ const WD_LANG: Record<string, string> = {
 	'wd:Q7737': 'ru'
 };
 
+/** Work → person properties that count as authorship, in display order. */
+export const AUTHOR_PROPS = ['wdt:P50', 'wdt:P58', 'wdt:P110', 'wdt:P10837'];
+/** What to ask `by-uris` to include alongside the edition. */
+export const RELATIVES = [...AUTHOR_PROPS, 'wdt:P629', 'wdt:P123'].join('|');
+
 export const invLabel = (e?: InvEntity) =>
 	e?.labels?.fr ?? e?.labels?.en ?? Object.values(e?.labels ?? {})[0];
 
@@ -72,9 +78,11 @@ export function parseInventaire(
 		first(edition, 'wdt:P1476') ?? edition.labels?.fromclaims ?? works.map(invLabel).find(Boolean);
 	if (!title) return null;
 	const subtitle = first(edition, 'wdt:P1680');
-	const authors = [...new Set(works.flatMap((w) => related(w, 'wdt:P50').map(invLabel)))].filter(
-		(a): a is string => !!a
-	);
+	// Author (P50), then the people who make a comic or a picture book: scenarist
+	// (P58), illustrator (P110), penciller (P10837). Colorists and inkers stay out.
+	const authors = [
+		...new Set(works.flatMap((w) => AUTHOR_PROPS.flatMap((prop) => related(w, prop).map(invLabel))))
+	].filter((a): a is string => !!a);
 	const pages = (edition.claims?.['wdt:P1104'] ?? [])[0];
 	const bnfId = first(edition, 'wdt:P268');
 	const image = edition.image?.url;
