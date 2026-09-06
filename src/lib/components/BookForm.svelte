@@ -66,6 +66,8 @@
 
 	let looking = $state(false);
 	let lookupNote = $state('');
+	/** Set when the lookup found a record but no cover: offers a manual search. */
+	let noCoverIsbn = $state('');
 
 	/** Ask the server to find metadata for the ISBN in the form and fill the empty fields. */
 	async function lookup() {
@@ -108,7 +110,10 @@
 					: 'Aucun rayon ne correspond aux règles ; choisissez-le à la main.';
 				if (localModel.enabled) void proposeLocally(m);
 			}
-			const cover = m.coverUrl ? `, couverture ${m.coverSource}` : ', pas de couverture trouvée';
+			const cover = m.coverUrl
+				? `, couverture ${m.coverSource}`
+				: ', pas de couverture dans les catalogues';
+			noCoverIsbn = m.coverUrl ? '' : m.isbn13;
 			lookupNote = m.sources.length
 				? `Notice : ${m.sources.join(' + ')}${cover}.`
 				: `Pas de notice${cover}.`;
@@ -317,6 +322,14 @@
 						<label class="ml-2 inline-flex items-center gap-1"
 							><input type="checkbox" name="removeCover" class="size-3.5" /> retirer</label
 						>
+					{:else if noCoverIsbn}
+						Aucune couverture chez BnF, Open Library ni Google Books.
+						<a
+							class="underline"
+							href="https://www.google.com/search?tbm=isch&q={noCoverIsbn}"
+							target="_blank"
+							rel="noopener">Chercher sur Google Images</a
+						>, puis collez l'adresse de l'image ci-dessous, ou prenez une photo.
 					{:else}
 						Photo ou fichier ; l'image est réduite et convertie automatiquement.
 					{/if}

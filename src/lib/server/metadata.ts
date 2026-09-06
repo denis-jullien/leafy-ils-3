@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { languageFromIsbn } from '$lib/isbn';
 import { imageSize } from './image-size';
@@ -164,6 +165,16 @@ function providerOrder(): ProviderName[] {
 const MIN_COVER_PX = 100;
 /** Sizes known to be "no cover" placeholders: BnF's grey book, Open Library's 1×1 gif. */
 const PLACEHOLDER_SIZES = new Set(['92x138', '1x1']);
+/** Google's key-free cover URL answers a placeholder image rather than a 404. These are its hashes. */
+const PLACEHOLDER_HASHES = new Set([
+	'ba8cd5043eedf32e39a4f328a4ec22f8a7dbbaba', // 128×184 "image not available", zoom 1
+	'd42f3acc24f36b7e8a3337460d9545e3a22df51a', // 575×750 png, zoom 2
+	'cc7313f0f2ac7aa7bc990e3b8bbc9fddd0a19f70' // 128×170 png, unknown ISBN
+]);
+
+/** Cover straight from Google Books by ISBN, no API key and no quota. Placeholders are filtered. */
+export const googleCoverUrl = (isbn13: string, zoom: 1 | 2) =>
+	`https://books.google.com/books/content?vid=ISBN${isbn13}&printsec=frontcover&img=1&zoom=${zoom}`;
 
 /**
  * Verified cover bytes are kept for a few minutes so that saving the book right
@@ -196,6 +207,9 @@ export async function verifyCover(url: string, signal: AbortSignal): Promise<boo
 		const size = imageSize(buf);
 		if (!size) return false;
 		if (PLACEHOLDER_SIZES.has(`${size.width}x${size.height}`)) return false;
+		if (PLACEHOLDER_HASHES.has(createHash('sha1').update(buf).digest('hex'))) return false;
+		// Google's zoom-2 placeholder is a PNG at exactly this size; real covers are JPEGs.
+		if (size.type === 'png' && size.width === 575 && size.height === 750) return false;
 		const ok = size.width >= MIN_COVER_PX && size.height >= MIN_COVER_PX;
 		if (ok) rememberCover(url, buf);
 		return ok;
@@ -290,6 +304,10 @@ export async function lookupIsbn(
 		url: `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg?default=false`,
 		source: 'openlibrary'
 	});
+	candidates.push(
+		{ url: googleCoverUrl(isbn13, 2), source: 'google' },
+		{ url: googleCoverUrl(isbn13, 1), source: 'google' }
+	);
 	try {
 		candidates.push(...(await withTimeout((s) => googleImageCovers(isbn13, s))));
 	} catch (err) {
