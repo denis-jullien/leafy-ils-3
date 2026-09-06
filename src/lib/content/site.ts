@@ -17,10 +17,24 @@ export const CONTACT = {
 	address: '2 rue de la Fontaine, 34160 Saint-Jean-de-Cornies',
 	phone: '04 67 00 00 00',
 	email: 'bibliotheque@saintjeandecornies.fr',
-	mapLabel: "plan d'accès — Saint-Jean-de-Cornies",
-	/** Optional: a Google Maps / OpenStreetMap link for the map placeholder. */
-	mapUrl: ''
+	/** The entrance of the library: the map marker and the directions point here. */
+	gps: { lat: 43.743715425289864, lon: 4.000731798416467 },
+	/** How to find the door once there, shown under the map. Leave empty to hide. */
+	access: ''
 };
+
+/** OpenStreetMap views of the library: embedded, full page, and directions to it. */
+export function mapLinks({ lat, lon } = CONTACT.gps) {
+	// A window of about 350 m × 250 m around the entrance: close enough to see the
+	// building and the surrounding streets, with the village name still on the map.
+	const dLon = 0.0022;
+	const dLat = 0.0012;
+	return {
+		embed: `https://www.openstreetmap.org/export/embed.html?bbox=${lon - dLon},${lat - dLat},${lon + dLon},${lat + dLat}&layer=mapnik&marker=${lat},${lon}`,
+		page: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
+		route: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`
+	};
+}
 
 /** Monday first, like the wall calendar. */
 export const HOURS: { day: string; slots: string; closed?: boolean }[] = [

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import BookCard from '$lib/components/site/BookCard.svelte';
 	import EventCard from '$lib/components/site/EventCard.svelte';
-	import { CONTACT, HOURS, MEMBERSHIP, SITE } from '$lib/content/site';
+	import { CONTACT, HOURS, MEMBERSHIP, SITE, mapLinks } from '$lib/content/site';
+
+	const map = mapLinks();
 
 	let { data } = $props();
 
@@ -152,13 +154,22 @@
 					<h3 class="card-h">Nous trouver</h3>
 					<p class="info-line"><strong>{CONTACT.place}</strong></p>
 					<p class="info-line">{CONTACT.address}</p>
-					{#if CONTACT.mapUrl}
-						<a class="map-placeholder" href={CONTACT.mapUrl} target="_blank" rel="noopener"
-							><span>{CONTACT.mapLabel}</span></a
-						>
-					{:else}
-						<div class="map-placeholder"><span>{CONTACT.mapLabel}</span></div>
-					{/if}
+					<div class="map">
+						<iframe
+							title="Plan d'accès — {CONTACT.place}"
+							src={map.embed}
+							loading="lazy"
+							referrerpolicy="no-referrer-when-downgrade"
+						></iframe>
+					</div>
+					<p class="map-caption">
+						📍 Le repère indique l'entrée de la bibliothèque.{#if CONTACT.access}
+							{CONTACT.access}{/if}
+					</p>
+					<p class="map-links">
+						<a href={map.page} target="_blank" rel="noopener">Voir en plus grand ↗</a>
+						<a href={map.route} target="_blank" rel="noopener">Itinéraire jusqu'à l'entrée ↗</a>
+					</p>
 				</div>
 				<div class="card">
 					<h3 class="card-h">Contact</h3>
