@@ -59,7 +59,7 @@
 			</div>
 		{:else}
 			<div class="book-row">
-				{#each data.books as book (book.id)}<BookCard {book} />{/each}
+				{#each data.books as book (book.id)}<BookCard {book} inPicks />{/each}
 			</div>
 		{/if}
 	</div>

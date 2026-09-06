@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PublicBook } from '$lib/server/catalogue';
 
-	let { book }: { book: PublicBook } = $props();
+	/** `inPicks`: the card sits in the "Coups de cœur" rail, where the flag would say the obvious. */
+	let { book, inPicks = false }: { book: PublicBook; inPicks?: boolean } = $props();
 
 	// Typographic cover colours cycle through the palette; the yellow needs dark text.
 	const swatch = $derived((book.id % 6) + 1);
@@ -13,7 +14,7 @@
 			.filter(Boolean)
 			.join(', ') ?? ''
 	);
-	const flag = $derived(book.featured ? 'Coup de cœur' : book.isNew ? 'Nouveau' : null);
+	const flag = $derived(book.featured && !inPicks ? 'Coup de cœur' : book.isNew ? 'Nouveau' : null);
 </script>
 
 <article class="book" class:is-out={!book.available}>
