@@ -25,10 +25,9 @@ export const actions: Actions = {
 			redirect(303, `/books/${book.id}`);
 		} catch (err) {
 			if (err instanceof DuplicateBookError) {
-				const field = err.field === 'isbn13' ? 'isbn' : 'rfidUid';
 				return setError(
 					form,
-					field,
+					'isbn',
 					`Déjà au catalogue : « ${err.existing.title} » (n° ${err.existing.id})`
 				);
 			}

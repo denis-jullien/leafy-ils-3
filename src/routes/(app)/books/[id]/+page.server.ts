@@ -43,10 +43,9 @@ export const actions: Actions = {
 			updateBook(db, book.id, form.data);
 		} catch (err) {
 			if (err instanceof DuplicateBookError) {
-				const field = err.field === 'isbn13' ? 'isbn' : 'rfidUid';
 				return setError(
 					form,
-					field,
+					'isbn',
 					`Déjà utilisé par « ${err.existing.title} » (n° ${err.existing.id})`
 				);
 			}

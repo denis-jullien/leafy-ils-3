@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { Db } from './db/client';
 import { books, type Book } from './db/schema';
-import { bookBarcode, normalizeRfidUid } from '$lib/barcodes';
+import { bookBarcode } from '$lib/barcodes';
 import { parseIsbn } from '$lib/isbn';
 import type { bookSchema } from '$lib/schemas';
 
@@ -10,7 +10,7 @@ export type BookInput = z.infer<typeof bookSchema>;
 
 export class DuplicateBookError extends Error {
 	constructor(
-		public field: 'isbn13' | 'rfidUid',
+		public field: 'isbn13',
 		public existing: Book
 	) {
 		super(`Duplicate ${field}`);
@@ -19,10 +19,9 @@ export class DuplicateBookError extends Error {
 
 function toRow(input: BookInput) {
 	const isbn13 = input.isbn ? parseIsbn(input.isbn) : null;
-	const rfidUid = input.rfidUid ? normalizeRfidUid(input.rfidUid) || null : null;
+	// rfidUid is not on the form for now; the column stays untouched.
 	return {
 		isbn13,
-		rfidUid,
 		title: input.title,
 		authors: input.authors ?? null,
 		publisher: input.publisher ?? null,
@@ -42,10 +41,6 @@ function assertUnique(db: Db, row: ReturnType<typeof toRow>, exceptId?: number) 
 	if (row.isbn13) {
 		const hit = db.select().from(books).where(eq(books.isbn13, row.isbn13)).get();
 		if (hit && hit.id !== exceptId) throw new DuplicateBookError('isbn13', hit);
-	}
-	if (row.rfidUid) {
-		const hit = db.select().from(books).where(eq(books.rfidUid, row.rfidUid)).get();
-		if (hit && hit.id !== exceptId) throw new DuplicateBookError('rfidUid', hit);
 	}
 }
 

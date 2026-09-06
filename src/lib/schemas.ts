@@ -49,7 +49,6 @@ export const bookSchema = z.object({
 		.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean())
 		.default(false),
 	notes: optionalText,
-	rfidUid: optionalText,
 	status: z.enum(['active', 'lost', 'withdrawn']).default('active')
 });
 

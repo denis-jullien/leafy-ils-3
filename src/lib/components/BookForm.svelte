@@ -135,8 +135,14 @@
 	}
 </script>
 
-<form method="post" {action} use:enhance class="grid gap-4 md:grid-cols-2" data-no-wedge>
-	<div class="space-y-1 md:col-span-2">
+<form
+	method="post"
+	{action}
+	use:enhance
+	class="grid grid-cols-6 gap-x-3 gap-y-4 md:grid-cols-12"
+	data-no-wedge
+>
+	<div class="col-span-6 space-y-1 md:col-span-12">
 		<Label for="isbn">ISBN</Label>
 		<div class="flex flex-wrap gap-2">
 			<Input
@@ -167,33 +173,52 @@
 		{#if lookupNote}<p class="text-sm text-muted-foreground">{lookupNote}</p>{/if}
 	</div>
 
-	<div class="space-y-1 md:col-span-2">
+	<div class="col-span-6 space-y-1 md:col-span-12">
 		<Label for="title">Titre</Label>
 		<Input id="title" name="title" bind:value={$form.title} />
 		{#if $errors.title}<p class="text-sm text-destructive">{$errors.title}</p>{/if}
 	</div>
 
-	<div class="space-y-1">
+	<div class="col-span-6 space-y-1">
 		<Label for="authors">Auteurs</Label>
 		<Input id="authors" name="authors" bind:value={$form.authors} placeholder="Séparés par ;" />
 	</div>
-	<div class="space-y-1">
+	<div class="col-span-6 space-y-1">
 		<Label for="publisher">Éditeur</Label>
 		<Input id="publisher" name="publisher" bind:value={$form.publisher} />
 	</div>
-	<div class="space-y-1">
+
+	<div class="col-span-2 space-y-1">
 		<Label for="publishedYear">Année</Label>
-		<Input id="publishedYear" name="publishedYear" type="number" bind:value={$form.publishedYear} />
+		<Input
+			id="publishedYear"
+			name="publishedYear"
+			type="number"
+			inputmode="numeric"
+			bind:value={$form.publishedYear}
+		/>
 	</div>
-	<div class="space-y-1">
+	<div class="col-span-2 space-y-1">
 		<Label for="language">Langue</Label>
-		<Input id="language" name="language" bind:value={$form.language} placeholder="fr" />
+		<Input
+			id="language"
+			name="language"
+			bind:value={$form.language}
+			placeholder="fr"
+			maxlength={3}
+		/>
 	</div>
-	<div class="space-y-1">
+	<div class="col-span-2 space-y-1">
 		<Label for="pageCount">Pages</Label>
-		<Input id="pageCount" name="pageCount" type="number" bind:value={$form.pageCount} />
+		<Input
+			id="pageCount"
+			name="pageCount"
+			type="number"
+			inputmode="numeric"
+			bind:value={$form.pageCount}
+		/>
 	</div>
-	<div class="space-y-1">
+	<div class="col-span-4 space-y-1">
 		<Label for="shelfId">Rayon</Label>
 		<select
 			id="shelfId"
@@ -206,9 +231,8 @@
 				<option value={s.id}>{s.name}</option>
 			{/each}
 		</select>
-		{#if shelfNote}<p class="text-sm text-muted-foreground">{shelfNote}</p>{/if}
 	</div>
-	<div class="flex items-center gap-2 pt-6">
+	<div class="col-span-2 flex items-center gap-2 self-end pb-2">
 		<input
 			id="featured"
 			name="featured"
@@ -216,20 +240,13 @@
 			bind:checked={$form.featured}
 			class="size-4"
 		/>
-		<Label for="featured">Coup de cœur (mis en avant sur le site public)</Label>
+		<Label for="featured" title="Mis en avant sur le site public">Coup de cœur</Label>
 	</div>
-	<div class="space-y-1">
-		<Label for="rfidUid">Identifiant de la puce RFID</Label>
-		<Input
-			id="rfidUid"
-			name="rfidUid"
-			bind:value={$form.rfidUid}
-			class="font-mono"
-			placeholder="Scannez la puce"
-		/>
-		{#if $errors.rfidUid}<p class="text-sm text-destructive">{$errors.rfidUid}</p>{/if}
-	</div>
-	<div class="space-y-1">
+	{#if shelfNote}<p class="col-span-6 -mt-3 text-sm text-muted-foreground md:col-span-12">
+			{shelfNote}
+		</p>{/if}
+
+	<div class="col-span-6 space-y-1 md:col-span-3">
 		<Label for="status">État</Label>
 		<select
 			id="status"
@@ -242,26 +259,27 @@
 			{/each}
 		</select>
 	</div>
-	<div class="space-y-1 md:col-span-2">
-		<Label for="coverUrl">URL de la couverture</Label>
+	<div class="col-span-6 space-y-1 md:col-span-9">
+		<Label for="coverUrl">Couverture (URL)</Label>
 		<div class="flex items-start gap-3">
 			{#if $form.coverUrl}
-				<img src={$form.coverUrl} alt="" class="h-28 w-20 flex-none rounded border object-cover" />
+				<img src={$form.coverUrl} alt="" class="h-16 w-11 flex-none rounded border object-cover" />
 			{/if}
 			<Input id="coverUrl" name="coverUrl" bind:value={$form.coverUrl} />
 		</div>
 	</div>
-	<div class="space-y-1 md:col-span-2">
+
+	<div class="col-span-6 space-y-1 md:col-span-12">
 		<Label for="description">Résumé</Label>
-		<Textarea id="description" name="description" bind:value={$form.description} rows={4} />
+		<Textarea id="description" name="description" bind:value={$form.description} rows={3} />
 	</div>
-	<div class="space-y-1 md:col-span-2">
+	<div class="col-span-6 space-y-1 md:col-span-12">
 		<Label for="notes">Notes internes</Label>
 		<Textarea id="notes" name="notes" bind:value={$form.notes} rows={2} />
 	</div>
 
-	{#if $message}<p class="text-sm text-destructive md:col-span-2">{$message}</p>{/if}
-	<div class="md:col-span-2">
+	{#if $message}<p class="col-span-6 text-sm text-destructive md:col-span-12">{$message}</p>{/if}
+	<div class="col-span-6 md:col-span-12">
 		<Button type="submit" disabled={$submitting}>{submitLabel}</Button>
 	</div>
 </form>
