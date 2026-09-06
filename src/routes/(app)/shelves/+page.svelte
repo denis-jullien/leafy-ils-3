@@ -20,7 +20,7 @@
 		message,
 		enhance: createEnhance,
 		submitting
-	} = superForm(data.form, { resetForm: true, ...formToasts() });
+	} = superForm(data.form, formToasts({ reset: true }));
 	let testing = $state(false);
 	let localResult = $state<LocalProposal | null | 'error'>(null);
 
@@ -201,7 +201,6 @@
 							placeholder="Romans pour adolescents et jeunes adultes."
 						/>
 					</div>
-					{#if $message}<p class="text-sm">{$message}</p>{/if}
 					<Button type="submit" disabled={$submitting}>Ajouter</Button>
 				</form>
 			</Card.Content>

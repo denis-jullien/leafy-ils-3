@@ -13,10 +13,7 @@
 	// svelte-ignore state_referenced_locally
 	const sf = superForm(data.form, formToasts({ saved: 'Famille enregistrée' }));
 	// svelte-ignore state_referenced_locally
-	const mf = superForm(data.memberForm, {
-		resetForm: true,
-		...formToasts({ saved: 'Membre ajouté' })
-	});
+	const mf = superForm(data.memberForm, formToasts({ saved: 'Membre ajouté', reset: true }));
 	const { form: memberForm, errors: memberErrors, enhance: memberEnhance } = mf;
 </script>
 

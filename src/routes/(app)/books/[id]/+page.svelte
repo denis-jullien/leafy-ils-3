@@ -13,7 +13,6 @@
 	let { data, form: actionData } = $props();
 	// svelte-ignore state_referenced_locally
 	const sf = superForm(data.form, formToasts({ saved: 'Livre enregistré' }));
-	const { message } = sf;
 	const open = $derived(data.history.find((h) => !h.loan.returnedAt));
 </script>
 
@@ -34,7 +33,6 @@
 				>Voir sur le site</Button
 			>
 		</div>
-		{#if $message === 'Enregistré'}<p class="text-sm text-green-700">Enregistré.</p>{/if}
 		<BookForm {sf} shelves={data.shelves} action="?/save" />
 	</div>
 

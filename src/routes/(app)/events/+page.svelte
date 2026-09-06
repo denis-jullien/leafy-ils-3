@@ -11,7 +11,7 @@
 
 	let { data } = $props();
 	// svelte-ignore state_referenced_locally
-	const sf = superForm(data.form, { resetForm: true, ...formToasts() });
+	const sf = superForm(data.form, formToasts({ reset: true }));
 	const upcoming = $derived(data.events.filter((e) => e.date >= data.today).reverse());
 	const past = $derived(data.events.filter((e) => e.date < data.today));
 </script>

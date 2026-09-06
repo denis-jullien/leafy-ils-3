@@ -15,7 +15,7 @@
 		submitLabel = 'Enregistrer'
 	}: { sf: SuperForm<Data>; action?: string; submitLabel?: string } = $props();
 	// svelte-ignore state_referenced_locally
-	const { form, errors, message, enhance, submitting } = sf;
+	const { form, errors, enhance, submitting } = sf;
 </script>
 
 <form method="post" {action} use:enhance class="grid gap-4 md:grid-cols-2" data-no-wedge>
@@ -53,7 +53,6 @@
 		<Label for="notes">Notes</Label>
 		<Textarea id="notes" name="notes" bind:value={$form.notes} rows={2} />
 	</div>
-	{#if $message}<p class="text-sm md:col-span-2">{$message}</p>{/if}
 	<div class="md:col-span-2">
 		<Button type="submit" disabled={$submitting}>{submitLabel}</Button>
 	</div>

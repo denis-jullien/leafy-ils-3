@@ -34,7 +34,7 @@
 	let shelfNote = $state('');
 
 	// svelte-ignore state_referenced_locally
-	const { form, errors, message, enhance, submitting } = sf;
+	const { form, errors, enhance, submitting } = sf;
 
 	let looking = $state(false);
 	let lookupNote = $state('');
@@ -277,8 +277,6 @@
 		<Label for="notes">Notes internes</Label>
 		<Textarea id="notes" name="notes" bind:value={$form.notes} rows={2} />
 	</div>
-
-	{#if $message}<p class="col-span-6 text-sm text-destructive md:col-span-12">{$message}</p>{/if}
 	<div class="col-span-6 md:col-span-12">
 		<Button type="submit" disabled={$submitting}>{submitLabel}</Button>
 	</div>

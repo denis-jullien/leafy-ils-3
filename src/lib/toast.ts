@@ -23,8 +23,10 @@ function messageOf(result: ActionResult): string | null {
  * messages come through as-is; a redirect (create then go to the page) uses
  * `created`; a failed validation gets a generic nudge.
  */
-export function formToasts(opts: { created?: string; saved?: string } = {}) {
+export function formToasts(opts: { created?: string; saved?: string; reset?: boolean } = {}) {
 	return {
+		// Edit forms keep what was just saved (superforms resets by default); "add" forms clear.
+		resetForm: opts.reset ?? false,
 		onResult: ({ result }: { result: ActionResult }) => {
 			switch (result.type) {
 				case 'success':

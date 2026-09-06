@@ -18,7 +18,7 @@
 		message,
 		enhance: formEnhance,
 		submitting
-	} = superForm(data.form, { resetForm: true, ...formToasts() });
+	} = superForm(data.form, formToasts({ reset: true }));
 </script>
 
 <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -115,7 +115,6 @@
 						<option value="admin">Administrateur</option>
 					</select>
 				</div>
-				{#if $message}<p class="text-sm">{$message}</p>{/if}
 				<Button type="submit" disabled={$submitting}>Créer le compte</Button>
 			</form>
 		</Card.Content>

@@ -14,7 +14,7 @@
 		submitLabel = 'Enregistrer'
 	}: { sf: SuperForm<Data>; action?: string; submitLabel?: string } = $props();
 	// svelte-ignore state_referenced_locally
-	const { form, errors, message, enhance, submitting } = sf;
+	const { form, errors, enhance, submitting } = sf;
 
 	const tagSuggestions = ['Jeunesse', 'Adultes', 'Seniors', 'Tout public', 'Familles'];
 </script>
@@ -61,7 +61,6 @@
 			placeholder="Histoires et comptines pour les 3–6 ans, suivies d'un goûter."
 		/>
 	</div>
-	{#if $message}<p class="text-sm md:col-span-2">{$message}</p>{/if}
 	<div class="md:col-span-2">
 		<Button type="submit" disabled={$submitting}>{submitLabel}</Button>
 	</div>
