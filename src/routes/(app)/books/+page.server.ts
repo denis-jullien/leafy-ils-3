@@ -5,11 +5,13 @@ import { books, loans } from '$lib/server/db/schema';
 import { parseIsbn } from '$lib/isbn';
 import { fillMissingCovers } from '$lib/server/covers';
 import { CATEGORY_IDS, type CategoryId } from '$lib/config';
-import { BOOK_STATUS } from '$lib/labels';
 import { PAGE_SIZE, parseListing } from '$lib/listing';
+import { ETAT_OPTIONS } from '$lib/labels';
 
 const SORTS = ['title', 'authors', 'year', 'shelf', 'category', 'status', 'added'] as const;
 type Sort = (typeof SORTS)[number];
+
+type Etat = (typeof ETAT_OPTIONS)[number]['value'];
 
 const onLoan = sql`${loans.bookId} = ${books.id} AND ${loans.returnedAt} IS NULL`;
 const nocase = (col: SQL | (typeof books)[keyof typeof books]) => sql`${col} COLLATE NOCASE`;
@@ -41,35 +43,41 @@ const ORDER: Record<Sort, (dir: 'asc' | 'desc') => SQL[]> = {
 	added: (d) => [d === 'asc' ? asc(books.createdAt) : desc(books.createdAt)]
 };
 
+const text = (url: URL, key: string) => url.searchParams.get(key)?.trim() ?? '';
+
 export const load: PageServerLoad = async ({ url }) => {
 	const listing = parseListing(url, SORTS, 'added', 'desc');
-	const catRaw = url.searchParams.get('cat') ?? '';
-	const cat = (CATEGORY_IDS as readonly string[]).includes(catRaw) ? (catRaw as CategoryId) : '';
-	const dispo = url.searchParams.get('dispo') ?? ''; // '', 'oui', 'non'
-	const etatRaw = url.searchParams.get('etat') ?? '';
-	const etat = etatRaw in BOOK_STATUS ? (etatRaw as keyof typeof BOOK_STATUS) : '';
-	const couv = url.searchParams.get('couv') ?? ''; // '', 'sans'
+	const f = {
+		title: text(url, 't'),
+		authors: text(url, 'a'),
+		year: text(url, 'y'),
+		shelf: text(url, 'r'),
+		cat: ((v) => ((CATEGORY_IDS as readonly string[]).includes(v) ? (v as CategoryId) : ''))(
+			text(url, 'cat')
+		),
+		coeur: text(url, 'coeur') === 'oui' ? 'oui' : '',
+		etat: ((v) => (ETAT_OPTIONS.some((o) => o.value === v) ? (v as Etat) : ''))(text(url, 'etat')),
+		couv: text(url, 'couv') === 'sans' ? 'sans' : ''
+	};
 
 	const filters: SQL[] = [];
-	if (listing.q) {
-		const isbn = parseIsbn(listing.q);
-		const pattern = `%${listing.q}%`;
+	if (f.title) {
+		const isbn = parseIsbn(f.title);
 		filters.push(
 			isbn
 				? eq(books.isbn13, isbn)
-				: or(
-						like(books.title, pattern),
-						like(books.authors, pattern),
-						like(books.publisher, pattern),
-						like(books.barcode, pattern)
-					)!
+				: or(like(books.title, `%${f.title}%`), like(books.barcode, `%${f.title}%`))!
 		);
 	}
-	if (cat) filters.push(eq(books.category, cat));
-	if (etat) filters.push(eq(books.status, etat));
-	if (dispo === 'oui') filters.push(and(eq(books.status, 'active'), isNull(loans.id))!);
-	if (dispo === 'non') filters.push(isNotNull(loans.id));
-	if (couv === 'sans') filters.push(or(isNull(books.coverUrl), eq(books.coverUrl, ''))!);
+	if (f.authors) filters.push(like(books.authors, `%${f.authors}%`));
+	if (f.year) filters.push(like(sql`cast(${books.publishedYear} as text)`, `${f.year}%`));
+	if (f.shelf) filters.push(like(books.shelf, `%${f.shelf}%`));
+	if (f.cat) filters.push(eq(books.category, f.cat));
+	if (f.coeur) filters.push(eq(books.featured, true));
+	if (f.etat === 'dispo') filters.push(and(eq(books.status, 'active'), isNull(loans.id))!);
+	else if (f.etat === 'pret') filters.push(isNotNull(loans.id));
+	else if (f.etat) filters.push(eq(books.status, f.etat));
+	if (f.couv) filters.push(or(isNull(books.coverUrl), eq(books.coverUrl, ''))!);
 	const where = filters.length ? and(...filters) : undefined;
 
 	const total =
@@ -91,7 +99,14 @@ export const load: PageServerLoad = async ({ url }) => {
 			.where(and(isNotNull(books.isbn13), isNull(books.coverUrl), eq(books.status, 'active')))
 			.get()?.n ?? 0;
 
-	return { ...listing, filters: { cat, dispo, etat, couv }, rows, total, missingCovers };
+	return {
+		...listing,
+		filters: f,
+		hasFilters: Object.values(f).some(Boolean),
+		rows,
+		total,
+		missingCovers
+	};
 };
 
 export const actions: Actions = {

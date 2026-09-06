@@ -93,8 +93,9 @@ list has **Chercher les couvertures manquantes**, which processes ten books per 
 ## Desk lists
 
 The books and families lists sort, filter and page on the server: the state lives in the
-URL (`?q=&sort=&dir=&page=` plus filters), SQLite does the work, and only the fifty rows
-shown are sent. Short fields are editable in place and save on their own through
+URL (`?sort=&dir=&page=` plus one param per column filter), SQLite does the work, and only
+the fifty rows shown are sent. Filters sit in the table header under each column: text
+applies as you type, dropdowns on change, and focus is kept across the reload. Short fields are editable in place and save on their own through
 `PATCH /api/books/:id` and `PATCH /api/families/:id`, which accept only those fields:
 shelf, category, coup de cœur and state for books, phone and membership for families.
 

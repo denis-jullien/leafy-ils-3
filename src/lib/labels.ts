@@ -16,3 +16,13 @@ export const ROLE: Record<'admin' | 'user', string> = {
 };
 
 export const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
+
+/** Values of the "État" header filter on the books list. */
+export const ETAT_OPTIONS = [
+	{ value: '', label: 'Tous' },
+	{ value: 'dispo', label: 'Disponibles' },
+	{ value: 'pret', label: 'En prêt' },
+	{ value: 'active', label: 'En collection' },
+	{ value: 'lost', label: 'Perdus' },
+	{ value: 'withdrawn', label: 'Retirés' }
+] as const;

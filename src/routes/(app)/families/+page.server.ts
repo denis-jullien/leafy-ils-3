@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, like, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { families, loans } from '$lib/server/db/schema';
@@ -24,24 +24,24 @@ const ORDER: Record<Sort, (dir: 'asc' | 'desc') => SQL[]> = {
 
 export const load: PageServerLoad = async ({ url }) => {
 	const listing = parseListing(url, SORTS, 'name');
-	const statutRaw = url.searchParams.get('statut') ?? '';
-	const statut = statutRaw in FAMILY_STATUS ? (statutRaw as keyof typeof FAMILY_STATUS) : '';
-	const pret = url.searchParams.get('pret') ?? ''; // '', 'oui' = has books out
+	const text = (key: string) => url.searchParams.get(key)?.trim() ?? '';
+	const f = {
+		name: text('n'),
+		email: text('e'),
+		phone: text('tel'),
+		statut: ((v) => (v in FAMILY_STATUS ? (v as keyof typeof FAMILY_STATUS) : ('' as const)))(
+			text('statut')
+		),
+		pret: text('pret') === 'oui' ? 'oui' : ''
+	};
 
 	const filters: SQL[] = [];
-	if (listing.q) {
-		const pattern = `%${listing.q}%`;
-		filters.push(
-			or(
-				like(families.name, pattern),
-				like(families.email, pattern),
-				like(families.phone, pattern)
-			)!
-		);
-	}
-	if (statut) filters.push(eq(families.status, statut));
+	if (f.name) filters.push(like(families.name, `%${f.name}%`));
+	if (f.email) filters.push(like(families.email, `%${f.email}%`));
+	if (f.phone) filters.push(like(families.phone, `%${f.phone}%`));
+	if (f.statut !== '') filters.push(eq(families.status, f.statut));
 	const where = filters.length ? and(...filters) : undefined;
-	const having = pret === 'oui' ? sql`count(${loans.id}) > 0` : undefined;
+	const having = f.pret === 'oui' ? sql`count(${loans.id}) > 0` : undefined;
 
 	const base = () =>
 		db
@@ -59,5 +59,5 @@ export const load: PageServerLoad = async ({ url }) => {
 		.offset((listing.page - 1) * PAGE_SIZE)
 		.all();
 
-	return { ...listing, filters: { statut, pret }, rows, total };
+	return { ...listing, filters: f, hasFilters: Object.values(f).some(Boolean), rows, total };
 };

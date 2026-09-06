@@ -1,29 +1,32 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Table from '$lib/components/ui/table';
 	import SortHead from '$lib/components/SortHead.svelte';
+	import HeadFilter from '$lib/components/HeadFilter.svelte';
 	import Pager from '$lib/components/Pager.svelte';
 	import QuickField from '$lib/components/QuickField.svelte';
 	import { fmtDate } from '$lib/format';
-	import { BOOK_STATUS } from '$lib/labels';
+	import { BOOK_STATUS, ETAT_OPTIONS } from '$lib/labels';
 	import { CATEGORIES } from '$lib/config';
 
 	let { data, form } = $props();
 	let filling = $state(false);
-	let filterForm: HTMLFormElement | undefined = $state();
 
-	const hasFilters = $derived(
-		!!(data.q || data.filters.cat || data.filters.dispo || data.filters.etat || data.filters.couv)
-	);
 	const categoryOptions = [
 		{ value: '', label: '—' },
 		...CATEGORIES.map((c) => ({ value: c.id, label: c.label }))
 	];
+	const categoryFilter = [
+		{ value: '', label: 'Toutes' },
+		...CATEGORIES.map((c) => ({ value: c.id, label: c.label }))
+	];
 	const statusOptions = Object.entries(BOOK_STATUS).map(([value, label]) => ({ value, label }));
-	const submit = () => filterForm?.requestSubmit();
+	const coeurOptions = [
+		{ value: '', label: 'Tous' },
+		{ value: 'oui', label: 'Coups de cœur' }
+	];
 </script>
 
 <div class="space-y-4">
@@ -52,116 +55,160 @@
 	</div>
 	{#if form?.covers}<p class="text-sm text-muted-foreground">{form.covers}</p>{/if}
 
-	<form
-		method="get"
-		class="filters-bar"
-		bind:this={filterForm}
-		data-no-wedge
-		data-sveltekit-noscroll
-	>
+	<form method="get" data-no-wedge data-sveltekit-noscroll data-sveltekit-keepfocus>
 		{#if data.sort !== 'added'}<input type="hidden" name="sort" value={data.sort} /><input
 				type="hidden"
 				name="dir"
 				value={data.dir}
 			/>{/if}
-		<Input name="q" value={data.q} placeholder="Titre, auteur, éditeur, ISBN…" class="w-64" />
-		<select name="cat" value={data.filters.cat} onchange={submit} aria-label="Catégorie">
-			<option value="">Toutes catégories</option>
-			{#each CATEGORIES as c (c.id)}<option value={c.id}>{c.label}</option>{/each}
-		</select>
-		<select name="dispo" value={data.filters.dispo} onchange={submit} aria-label="Disponibilité">
-			<option value="">Disponibles et en prêt</option>
-			<option value="oui">Disponibles</option>
-			<option value="non">En prêt</option>
-		</select>
-		<select name="etat" value={data.filters.etat} onchange={submit} aria-label="État">
-			<option value="">Tous états</option>
-			{#each statusOptions as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-		</select>
-		<select name="couv" value={data.filters.couv} onchange={submit} aria-label="Couverture">
-			<option value="">Avec ou sans couverture</option>
-			<option value="sans">Sans couverture</option>
-		</select>
-		<Button type="submit" variant="secondary">Rechercher</Button>
-		{#if hasFilters}<Button href="/books" variant="ghost">Effacer</Button>{/if}
-	</form>
-
-	<Table.Root>
-		<Table.Header>
-			<Table.Row>
-				<SortHead key="title" label="Titre" sort={data.sort} dir={data.dir} />
-				<SortHead key="authors" label="Auteurs" sort={data.sort} dir={data.dir} />
-				<SortHead key="year" label="Année" sort={data.sort} dir={data.dir} />
-				<SortHead key="shelf" label="Rayon" sort={data.sort} dir={data.dir} />
-				<SortHead key="category" label="Catégorie" sort={data.sort} dir={data.dir} />
-				<Table.Head title="Coup de cœur">♥</Table.Head>
-				<SortHead key="status" label="État" sort={data.sort} dir={data.dir} />
-			</Table.Row>
-		</Table.Header>
-		<Table.Body>
-			{#each data.rows as { book, onLoanTo, dueAt } (book.id)}
+		<Table.Root>
+			<Table.Header>
 				<Table.Row>
-					<Table.Cell>
-						<a class="font-medium underline" href="/books/{book.id}">{book.title}</a>
-						{#if book.coverUrl}{:else}<span
-								class="ml-1 text-xs text-muted-foreground"
-								title="Pas de couverture">◌</span
-							>{/if}
-					</Table.Cell>
-					<Table.Cell>{book.authors ?? ''}</Table.Cell>
-					<Table.Cell>{book.publishedYear ?? ''}</Table.Cell>
-					<Table.Cell>
-						<QuickField
-							endpoint="/api/books/{book.id}"
-							field="shelf"
-							value={book.shelf}
-							placeholder="—"
-							label="Rayon"
+					<SortHead key="title" label="Titre" sort={data.sort} dir={data.dir} />
+					<SortHead key="authors" label="Auteurs" sort={data.sort} dir={data.dir} />
+					<SortHead key="year" label="Année" sort={data.sort} dir={data.dir} />
+					<SortHead key="shelf" label="Rayon" sort={data.sort} dir={data.dir} />
+					<SortHead key="category" label="Catégorie" sort={data.sort} dir={data.dir} />
+					<Table.Head title="Coup de cœur">♥</Table.Head>
+					<SortHead key="status" label="État" sort={data.sort} dir={data.dir} />
+				</Table.Row>
+				<Table.Row class="filter-row">
+					<Table.Head>
+						<HeadFilter
+							name="t"
+							value={data.filters.title}
+							placeholder="Titre ou ISBN"
+							label="Filtrer par titre"
 						/>
-					</Table.Cell>
-					<Table.Cell>
-						<QuickField
-							endpoint="/api/books/{book.id}"
-							field="category"
+						<label class="head-check"
+							><input
+								type="checkbox"
+								name="couv"
+								value="sans"
+								checked={data.filters.couv === 'sans'}
+								onchange={(e) => e.currentTarget.form?.requestSubmit()}
+							/> sans couverture</label
+						>
+					</Table.Head>
+					<Table.Head
+						><HeadFilter
+							name="a"
+							value={data.filters.authors}
+							placeholder="Auteur"
+							label="Filtrer par auteur"
+						/></Table.Head
+					>
+					<Table.Head
+						><HeadFilter
+							name="y"
+							value={data.filters.year}
+							placeholder="20…"
+							label="Filtrer par année"
+						/></Table.Head
+					>
+					<Table.Head
+						><HeadFilter
+							name="r"
+							value={data.filters.shelf}
+							placeholder="Rayon"
+							label="Filtrer par rayon"
+						/></Table.Head
+					>
+					<Table.Head
+						><HeadFilter
+							name="cat"
 							kind="select"
-							value={book.category}
-							options={categoryOptions}
-							label="Catégorie"
+							value={data.filters.cat}
+							options={categoryFilter}
+							label="Filtrer par catégorie"
+						/></Table.Head
+					>
+					<Table.Head
+						><HeadFilter
+							name="coeur"
+							kind="select"
+							value={data.filters.coeur}
+							options={coeurOptions}
+							label="Coups de cœur"
+						/></Table.Head
+					>
+					<Table.Head>
+						<HeadFilter
+							name="etat"
+							kind="select"
+							value={data.filters.etat}
+							options={[...ETAT_OPTIONS]}
+							label="Filtrer par état"
 						/>
-					</Table.Cell>
-					<Table.Cell>
-						<QuickField
-							endpoint="/api/books/{book.id}"
-							field="featured"
-							kind="checkbox"
-							value={book.featured}
-							label="Coup de cœur"
-						/>
-					</Table.Cell>
-					<Table.Cell>
-						{#if onLoanTo}
-							<Badge variant="secondary">en prêt · retour {fmtDate(dueAt)}</Badge>
-						{:else}
+						{#if data.hasFilters}<a class="head-check" href="/books">✕ effacer les filtres</a>{/if}
+					</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				{#each data.rows as { book, onLoanTo, dueAt } (book.id)}
+					<Table.Row>
+						<Table.Cell>
+							<a class="font-medium underline" href="/books/{book.id}">{book.title}</a>
+							{#if !book.coverUrl}<span
+									class="ml-1 text-xs text-muted-foreground"
+									title="Pas de couverture">◌</span
+								>{/if}
+						</Table.Cell>
+						<Table.Cell>{book.authors ?? ''}</Table.Cell>
+						<Table.Cell>{book.publishedYear ?? ''}</Table.Cell>
+						<Table.Cell>
 							<QuickField
 								endpoint="/api/books/{book.id}"
-								field="status"
-								kind="select"
-								value={book.status}
-								options={statusOptions}
-								label="État"
+								field="shelf"
+								value={book.shelf}
+								placeholder="—"
+								label="Rayon"
 							/>
-						{/if}
-					</Table.Cell>
-				</Table.Row>
-			{:else}
-				<Table.Row
-					><Table.Cell colspan={7} class="text-muted-foreground"
-						>Aucun livre ne correspond.</Table.Cell
-					></Table.Row
-				>
-			{/each}
-		</Table.Body>
-	</Table.Root>
+						</Table.Cell>
+						<Table.Cell>
+							<QuickField
+								endpoint="/api/books/{book.id}"
+								field="category"
+								kind="select"
+								value={book.category}
+								options={categoryOptions}
+								label="Catégorie"
+							/>
+						</Table.Cell>
+						<Table.Cell>
+							<QuickField
+								endpoint="/api/books/{book.id}"
+								field="featured"
+								kind="checkbox"
+								value={book.featured}
+								label="Coup de cœur"
+							/>
+						</Table.Cell>
+						<Table.Cell>
+							{#if onLoanTo}
+								<Badge variant="secondary">en prêt · retour {fmtDate(dueAt)}</Badge>
+							{:else}
+								<QuickField
+									endpoint="/api/books/{book.id}"
+									field="status"
+									kind="select"
+									value={book.status}
+									options={statusOptions}
+									label="État"
+								/>
+							{/if}
+						</Table.Cell>
+					</Table.Row>
+				{:else}
+					<Table.Row
+						><Table.Cell colspan={7} class="text-muted-foreground"
+							>Aucun livre ne correspond.</Table.Cell
+						></Table.Row
+					>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	</form>
 
 	<Pager current={data.page} total={data.total} />
 </div>
