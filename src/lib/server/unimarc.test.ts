@@ -61,6 +61,29 @@ describe('unimarc', () => {
 		expect(unimarcToBook(parseUnimarc(rec))!.authors).toEqual(['Isamu Sasagawa']);
 	});
 
+	it('puts the set a volume belongs to (461) in front of the title, not the collection (225)', () => {
+		const rec = `<srw:record><srw:recordData><mxc:record>
+<mxc:datafield tag="200" ind1="1" ind2=" "><mxc:subfield code="a">La cavalerie est là</mxc:subfield><mxc:subfield code="f">Kohei Horikoshi</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="225" ind1=" " ind2=" "><mxc:subfield code="a">My hero academia</mxc:subfield><mxc:subfield code="v">vol. 42</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="461" ind1=" " ind2=" "><mxc:subfield code="0">45059444</mxc:subfield><mxc:subfield code="t">My hero academia</mxc:subfield><mxc:subfield code="v">42</mxc:subfield></mxc:datafield>
+</mxc:record></srw:recordData></srw:record>`;
+		expect(unimarcToBook(parseUnimarc(rec))!.title).toBe(
+			'My hero academia. 42, La cavalerie est là'
+		);
+		// A publisher's collection alone never reaches the title.
+		const folio = `<srw:record><srw:recordData><mxc:record>
+<mxc:datafield tag="200" ind1="1" ind2=" "><mxc:subfield code="a">Le petit prince</mxc:subfield></mxc:datafield>
+<mxc:datafield tag="225" ind1=" " ind2=" "><mxc:subfield code="a">Folio junior</mxc:subfield><mxc:subfield code="v">100</mxc:subfield></mxc:datafield>
+</mxc:record></srw:recordData></srw:record>`;
+		expect(unimarcToBook(parseUnimarc(folio))!.title).toBe('Le petit prince');
+		// Sudoc already writes the set in 200: no doubling.
+		const sudoc = `<record><datafield tag="200"><subfield code="a">My hero academia</subfield><subfield code="h">42</subfield><subfield code="i">La cavalerie est là</subfield></datafield>
+<datafield tag="461"><subfield code="t">My hero academia</subfield><subfield code="v">42</subfield></datafield></record>`;
+		expect(unimarcToBook(parseUnimarc(sudoc))!.title).toBe(
+			'My hero academia. 42, La cavalerie est là'
+		);
+	});
+
 	it('returns null without a title', () => {
 		expect(unimarcToBook(parseUnimarc('<record></record>'))).toBeNull();
 	});

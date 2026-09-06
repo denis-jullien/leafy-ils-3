@@ -106,6 +106,16 @@ export function unimarcToBook(fields: UnimarcField[]): UnimarcBook | null {
 	const partTitle = first(fields, '200', 'i');
 	if (partTitle) parts.push(`, ${partTitle}`);
 
+	// 461 links a volume to the set it belongs to (a manga or comics series, a saga):
+	// BnF keeps the set out of the title, Sudoc writes "Set. 42, Volume title". Do the
+	// same. 225/410 are the publisher's collections (Folio...) and stay out.
+	const set = fields.find((f) => f.tag === '461' && f.sub.t?.length);
+	const setTitle = set && set.sub.t[0].trim();
+	if (setTitle && !title.toLowerCase().startsWith(setTitle.toLowerCase())) {
+		const vol = set.sub.v?.[0]?.replace(/^\s*(vol(ume)?|t(ome)?)\.?\s*/i, '').trim();
+		parts.unshift(`${setTitle}. ${vol ? `${vol}, ` : ''}`);
+	}
+
 	// 700/701 = main and co-authors as "Surname $a, Forename $b". Picture books and
 	// comics often have nobody there and only a 702 (secondary responsibility:
 	// illustrator, adapter...). 200$f, the free-text statement, is the last resort.
