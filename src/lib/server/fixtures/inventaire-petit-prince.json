@@ -1,0 +1,194 @@
+{
+	"entities": {
+		"inv:0bf217aaba2509909a4831efcc13375f": {
+			"type": "edition",
+			"labels": {
+				"fromclaims": "Le Petit Prince"
+			},
+			"claims": {
+				"wdt:P31": ["wd:Q3331189"],
+				"wdt:P212": ["978-2-07-061275-8"],
+				"wdt:P957": ["2-07-061275-9"],
+				"wdt:P407": ["wd:Q150"],
+				"wdt:P1476": ["Le Petit Prince"],
+				"wdt:P577": ["2007-03-15"],
+				"wdt:P629": ["wd:Q25338"],
+				"invp:P2": ["ddaa92b1684f7ec459b8073da337423f51235c0d"],
+				"wdt:P648": ["OL9567312M"],
+				"wdt:P1104": [120],
+				"wdt:P2969": ["832605"],
+				"wdt:P123": ["wd:Q273819"],
+				"wdt:P268": ["41023439w"]
+			},
+			"image": {
+				"url": "/img/entities/ddaa92b1684f7ec459b8073da337423f51235c0d"
+			}
+		},
+		"wd:Q25338": {
+			"type": "work",
+			"labels": {
+				"fr": "Le Petit Prince"
+			},
+			"descriptions": {
+				"fr": "roman d'Antoine de Saint-Exupéry (1943)"
+			},
+			"claims": {
+				"wdt:P31": ["wd:Q7725634"],
+				"wdt:P136": [
+					"wd:Q109311786",
+					"wd:Q20737414",
+					"wd:Q17991521",
+					"wd:Q11163999",
+					"wd:Q56451354",
+					"wd:Q1080374"
+				],
+				"wdt:P214": ["186349021"],
+				"wdt:P227": ["4129925-5"],
+				"wdt:P243": ["22583605"],
+				"wdt:P244": ["n87116210"],
+				"wdt:P268": ["11962706k"],
+				"wdt:P269": ["027626857"],
+				"wdt:P407": ["wd:Q150"],
+				"wdt:P577": ["1943-04-06", "1943-04"],
+				"wdt:P648": ["OL10264W"],
+				"wdt:P856": ["https://www.lepetitprince.com/en/", "https://www.lepetitprince.com"],
+				"wdt:P921": ["wd:Q2747456"],
+				"wdt:P1085": ["11883"],
+				"wdt:P1274": ["1014956"],
+				"wdt:P1889": ["wd:Q393654", "wd:Q21489759"],
+				"wdt:P5571": ["15877"],
+				"wdt:P7937": ["wd:Q49084", "wd:Q149537"],
+				"wdt:P8383": ["2180358", "157993"],
+				"wdt:P50": ["wd:Q2908"],
+				"wdt:P110": ["wd:Q2908"],
+				"wdt:P674": ["wd:Q58185387", "wd:Q58185595"],
+				"wdt:P1476": ["Le Petit Prince"],
+				"wdt:P155": ["wd:Q1430624"],
+				"wdt:P156": ["wd:Q3237012"],
+				"wdt:P166": ["wd:Q40734", "wd:Q115288957"],
+				"wdt:P2959": ["wd:Q25681506", "wd:Q25681507"],
+				"wdt:P18": [
+					"Saint Exupery exhibit - Air & Space Museum, Le Bourget, Paris, France, absent artwork and not subject to copyright.jpg"
+				]
+			},
+			"image": {
+				"url": "https://commons.wikimedia.org/wiki/Special:FilePath/Saint%20Exupery%20exhibit%20-%20Air%20%26%20Space%20Museum%2C%20Le%20Bourget%2C%20Paris%2C%20France%2C%20absent%20artwork%20and%20not%20subject%20to%20copyright.jpg?width=1024",
+				"file": "Saint Exupery exhibit - Air & Space Museum, Le Bourget, Paris, France, absent artwork and not subject to copyright.jpg",
+				"credits": {
+					"text": "Wikimedia Commons",
+					"url": "https://commons.wikimedia.org/wiki/File:Saint Exupery exhibit - Air & Space Museum, Le Bourget, Paris, France, absent artwork and not subject to copyright.jpg"
+				}
+			}
+		},
+		"wd:Q273819": {
+			"type": "publisher",
+			"labels": {
+				"fr": "Éditions Gallimard"
+			},
+			"descriptions": {
+				"fr": "maison d'édition française"
+			},
+			"claims": {
+				"wdt:P31": ["wd:Q2085381", "wd:Q1320047"],
+				"wdt:P112": ["wd:Q1241719"],
+				"wdt:P227": ["33669-5"],
+				"wdt:P244": ["n81051687"],
+				"wdt:P268": ["12864072w"],
+				"wdt:P571": ["1911"],
+				"wdt:P749": ["wd:Q21002268"],
+				"wdt:P856": ["https://www.gallimard.fr/"],
+				"wdt:P1239": ["4384"],
+				"wdt:P2002": ["Gallimard"],
+				"wdt:P2003": ["editions_gallimard"],
+				"wdt:P2013": ["gallimard"],
+				"wdt:P2397": ["UC4sAejlkQo-wcVZBFQdfNPA"],
+				"wdt:P3035": ["978-2-07", "978-2-7424"],
+				"wdt:P8063": ["1fe51848-519c-4e83-9ca8-3f5b0fd7902e"],
+				"wdt:P18": ["Gallimard, rue Gallimard.jpg"]
+			},
+			"image": {
+				"url": "https://commons.wikimedia.org/wiki/Special:FilePath/Gallimard%2C%20rue%20Gallimard.jpg?width=1024",
+				"file": "Gallimard, rue Gallimard.jpg",
+				"credits": {
+					"text": "Wikimedia Commons",
+					"url": "https://commons.wikimedia.org/wiki/File:Gallimard, rue Gallimard.jpg"
+				}
+			}
+		},
+		"wd:Q2908": {
+			"type": "human",
+			"labels": {
+				"fr": "Antoine de Saint-Exupéry"
+			},
+			"descriptions": {
+				"fr": "écrivain et aviateur français"
+			},
+			"claims": {
+				"wdt:P31": ["wd:Q5"],
+				"wdt:P213": ["0000000120966599"],
+				"wdt:P214": ["93810507"],
+				"wdt:P227": ["118604902"],
+				"wdt:P244": ["n80126188"],
+				"wdt:P268": ["11923342r"],
+				"wdt:P269": ["027118266"],
+				"wdt:P349": ["00455153"],
+				"wdt:P569": ["1900-06-29"],
+				"wdt:P570": ["1944-07-31"],
+				"wdt:P648": ["OL31901A"],
+				"wdt:P856": ["https://www.antoinedesaintexupery.com/"],
+				"wdt:P906": ["89093"],
+				"wdt:P950": ["XX990065"],
+				"wdt:P1006": ["068731876"],
+				"wdt:P1233": ["103589"],
+				"wdt:P1412": ["wd:Q150"],
+				"wdt:P2607": ["3a359404-4529-4f34-af80-fd3ba1025e81"],
+				"wdt:P2963": ["1020792"],
+				"wdt:P3630": ["26195"],
+				"wdt:P5491": ["25173"],
+				"wdt:P5570": ["-51837"],
+				"wdt:P7400": ["antoinedesaintexuper"],
+				"wdt:P9707": ["63572"],
+				"wdt:P22": ["wd:Q116468528"],
+				"wdt:P25": ["wd:Q94403472"],
+				"wdt:P26": ["wd:Q445703"],
+				"wdt:P3373": ["wd:Q3292127", "wd:Q3484628"],
+				"wdt:P27": ["wd:Q142"],
+				"wdt:P69": ["wd:Q471980", "wd:Q3558736", "wd:Q3268865"],
+				"wdt:P103": ["wd:Q150"],
+				"wdt:P106": [
+					"wd:Q2095549",
+					"wd:Q6625963",
+					"wd:Q4853732",
+					"wd:Q36180",
+					"wd:Q1930187",
+					"wd:Q644687",
+					"wd:Q4964182",
+					"wd:Q49757",
+					"wd:Q205375"
+				],
+				"wdt:P109": ["Antoine de Saint-Exupéry signature.svg"],
+				"wdt:P166": [
+					"wd:Q3324507",
+					"wd:Q2547676",
+					"wd:Q10855195",
+					"wd:Q18945",
+					"wd:Q1542826",
+					"wd:Q3873147",
+					"wd:Q115288957",
+					"wd:Q3405617",
+					"wd:Q572316"
+				],
+				"wdt:P2959": ["wd:Q28357907"],
+				"wdt:P18": ["11exupery-inline1-500.jpg", "Antoine de Saint-Exupéry.jpg"]
+			},
+			"image": {
+				"url": "https://commons.wikimedia.org/wiki/Special:FilePath/11exupery-inline1-500.jpg?width=1024",
+				"file": "11exupery-inline1-500.jpg",
+				"credits": {
+					"text": "Wikimedia Commons",
+					"url": "https://commons.wikimedia.org/wiki/File:11exupery-inline1-500.jpg"
+				}
+			}
+		}
+	}
+}

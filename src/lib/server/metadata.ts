@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { languageFromIsbn } from '$lib/isbn';
 import { imageSize } from './image-size';
+import { invLabel, parseInventaire, type InvEntity } from './inventaire';
 import { parseUnimarc, unimarcToBook } from './unimarc';
 
 /**
@@ -30,7 +31,7 @@ export interface BookMetadata {
 	dewey: string[];
 }
 
-export type ProviderName = 'bnf' | 'sudoc' | 'google' | 'openlibrary';
+export type ProviderName = 'bnf' | 'sudoc' | 'inventaire' | 'google' | 'openlibrary';
 
 type Partial = Omit<
 	BookMetadata,
@@ -44,7 +45,8 @@ type Partial = Omit<
 };
 type Provider = (isbn13: string, signal: AbortSignal) => Promise<Partial | null>;
 
-const UA = 'leafy-ils/0.1 (village library catalogue)';
+// Inventaire (and Wikimedia) ask callers to identify themselves with a way to get in touch.
+const UA = `leafy-ils/0.1 (village library catalogue; ${env.CONTACT ?? 'https://github.com/denisjullien/leafy-ils'})`;
 const get = (url: string, signal: AbortSignal, headers: Record<string, string> = {}) =>
 	fetch(url, { signal, headers: { 'User-Agent': UA, ...headers }, redirect: 'follow' });
 
@@ -125,6 +127,49 @@ const google: Provider = async (isbn13, signal) => {
 	};
 };
 
+/* ---------- Inventaire.io: open book database on top of Wikidata ---------- */
+// Documented API (api.inventaire.io): one call returns the edition and, through
+// `relatives`, its work (P629), the work's authors (P50) and the publisher (P123).
+// Genres (P136) and main subjects (P921) come as Wikidata ids; a second call turns
+// them into French labels, which is what the shelf rules match on.
+const INVENTAIRE = 'https://inventaire.io/api/entities/by-uris';
+
+async function inventaireEntities(
+	uris: string[],
+	signal: AbortSignal,
+	extra: Record<string, string> = {}
+): Promise<Record<string, InvEntity>> {
+	const params = new URLSearchParams({ uris: uris.join('|'), lang: 'fr', ...extra });
+	const res = await get(`${INVENTAIRE}?${params}`, signal);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const json = (await res.json()) as { entities?: Record<string, InvEntity> };
+	return json.entities ?? {};
+}
+
+const inventaire: Provider = async (isbn13, signal) => {
+	const ents = await inventaireEntities([`isbn:${isbn13}`], signal, {
+		relatives: 'wdt:P50|wdt:P629|wdt:P123'
+	});
+	const parsed = parseInventaire(ents);
+	if (!parsed) return null;
+	const { record, labelIds } = parsed;
+	if (labelIds.length) {
+		try {
+			const labels = await inventaireEntities(labelIds, signal, { attributes: 'labels' });
+			record.subjects = [
+				...new Set([
+					...labelIds.map((id) => invLabel(labels[id])).filter((x): x is string => !!x),
+					...(record.subjects ?? [])
+				])
+			];
+		} catch (err) {
+			console.warn(`[isbn] inventaire labels failed for ${isbn13}:`, (err as Error).message);
+		}
+	}
+	if (record.bnfArk) record.covers?.push({ url: bnfCoverUrl(record.bnfArk), source: 'bnf' });
+	return record;
+};
+
 /* ---------- Open Library ---------- */
 const openlibrary: Provider = async (isbn13, signal) => {
 	const res = await get(
@@ -151,10 +196,10 @@ const openlibrary: Provider = async (isbn13, signal) => {
 	};
 };
 
-const providers: Record<ProviderName, Provider> = { bnf, sudoc, google, openlibrary };
+const providers: Record<ProviderName, Provider> = { bnf, sudoc, inventaire, google, openlibrary };
 
 function providerOrder(): ProviderName[] {
-	const raw = env.ISBN_PROVIDERS ?? 'bnf,sudoc,google,openlibrary';
+	const raw = env.ISBN_PROVIDERS ?? 'bnf,sudoc,inventaire,google,openlibrary';
 	return raw
 		.split(',')
 		.map((s) => s.trim())
@@ -181,18 +226,13 @@ const PLACEHOLDER_HASHES = new Set([
 export const epagineCoverUrl = (isbn13: string) =>
 	`https://images.epagine.fr/${isbn13.slice(-3)}/${isbn13}_1_75.jpg`;
 
-/** Inventaire.io: open, community-run book database with covers, no key. */
+/** Inventaire's cover alone, for COVER_SOURCES (the record provider above brings it too). */
 async function inventaireCover(
 	isbn13: string,
 	signal: AbortSignal
 ): Promise<{ url: string; source: string }[]> {
-	const res = await get(
-		`https://inventaire.io/api/entities?action=by-uris&uris=isbn:${isbn13}`,
-		signal
-	);
-	if (!res.ok) throw new Error(`HTTP ${res.status}`);
-	const json = (await res.json()) as { entities?: Record<string, { image?: { url?: string } }> };
-	const img = Object.values(json.entities ?? {})[0]?.image?.url;
+	const ents = await inventaireEntities([`isbn:${isbn13}`], signal, { attributes: 'image' });
+	const img = Object.values(ents)[0]?.image?.url;
 	return img
 		? [{ url: img.startsWith('http') ? img : `https://inventaire.io${img}`, source: 'inventaire' }]
 		: [];

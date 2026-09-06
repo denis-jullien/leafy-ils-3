@@ -82,8 +82,11 @@ Loan policy lives in `src/lib/config.ts` (21 days, 10 books per family, one rene
 
 `src/lib/server/metadata.ts` asks the providers in `ISBN_PROVIDERS` order and merges their
 answers, the first one winning per field: BnF (UNIMARC through SRU, with the summary and
-a cover keyed by the record's ARK), Sudoc (UNIMARC, links to the BnF record), Google Books
-and Open Library. Cover candidates are fetched and checked: not an image, smaller than
+a cover keyed by the record's ARK), Sudoc (UNIMARC, links to the BnF record), Inventaire.io
+(open database on top of Wikidata: edition, work, author and publisher in one call, then the
+genre and subject ids resolved to French labels, plus the BnF record id when Wikidata has it),
+Google Books and Open Library. Set `CONTACT` to an email or URL: the providers see it in the
+User-Agent header, which Inventaire asks for. Cover candidates are fetched and checked: not an image, smaller than
 100 px, or a known placeholder means rejected. Google Books' key-free cover address is tried
 too, with its placeholder images filtered out, as are ePagine (the image service behind
 French booksellers' sites, by far the best coverage for books distributed in France) and
