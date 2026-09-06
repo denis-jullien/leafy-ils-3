@@ -69,13 +69,42 @@
 	/** Set when the lookup found a record but no cover: offers a manual search. */
 	let noCoverIsbn = $state('');
 
-	/** Ask the server to find metadata for the ISBN in the form and fill the empty fields. */
+	/** ISBN whose record last filled this form. Searching another one starts afresh. */
+	let filledIsbn = $state('');
+
+	/**
+	 * Forget the previous record: everything a lookup can write, the shelf it
+	 * proposed and a cover picked for it. Barcode, notes and status are the
+	 * volunteer's own and stay.
+	 */
+	function clearRecord() {
+		$form.title = '';
+		$form.authors = '';
+		$form.publisher = '';
+		$form.publishedYear = null;
+		$form.language = '';
+		$form.pageCount = null;
+		$form.description = '';
+		$form.coverUrl = '';
+		$form.shelfId = null;
+		shelfNote = '';
+		noCoverIsbn = '';
+		clearPicked();
+	}
+
+	/**
+	 * Ask the server to find metadata for the ISBN in the form and fill the empty
+	 * fields. Values typed by hand are kept, but a record fetched for another ISBN
+	 * is dropped first: scanning a second book must not mix the two.
+	 */
 	async function lookup() {
 		const isbn = parseIsbn($form.isbn ?? '');
 		if (!isbn) {
 			lookupNote = "Saisissez d'abord un ISBN valide.";
 			return;
 		}
+		if (filledIsbn && filledIsbn !== isbn) clearRecord();
+		filledIsbn = isbn;
 		looking = true;
 		lookupNote = '';
 		try {
