@@ -74,12 +74,6 @@
 					<span class="kicker kicker-2">Le programme</span>
 					<h2 class="section-title">Événements</h2>
 				</div>
-				<a
-					class="section-link"
-					href="mailto:{CONTACT.email}?subject={encodeURIComponent(
-						"Recevoir l'agenda de la bibliothèque"
-					)}">Recevoir l'agenda →</a
-				>
 			</div>
 			{#if data.events.length > 0}
 				<div class="event-list">
