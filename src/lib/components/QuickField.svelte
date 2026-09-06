@@ -3,6 +3,7 @@
 	 * An editable cell that saves on its own: PATCH { [field]: value } to `endpoint`.
 	 * Text saves on Enter or blur, selects and checkboxes on change. Escape reverts.
 	 */
+	import { invalidateAll } from '$app/navigation';
 	import { Check, X } from '@lucide/svelte';
 
 	type Kind = 'text' | 'select' | 'checkbox';
@@ -49,6 +50,8 @@
 			if (!res.ok) throw new Error(body.error ?? `Erreur ${res.status}`);
 			current = next;
 			status = 'saved';
+			// Tell SvelteKit the data changed: reloads this list and drops any page preloaded on hover.
+			await invalidateAll();
 			if (timer) clearTimeout(timer);
 			timer = setTimeout(() => (status = 'idle'), 1500);
 		} catch (err) {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { beforeNavigate } from '$app/navigation';
+	import { beforeNavigate, invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -134,6 +134,7 @@
 			say('ok', `${basket.length} livre(s) prêté(s) à ${family.family.name}, retour le ${due}`);
 			basket = [];
 			await refreshFamily();
+			await invalidateAll(); // pages preloaded on hover must not show pre-loan data
 		} catch (err) {
 			say('err', (err as Error).message);
 		} finally {
@@ -233,6 +234,7 @@
 				familyId !== undefined && returns.some((r) => r.loan.familyId === familyId);
 			returns = [];
 			if (touchesFamily) await refreshFamily();
+			await invalidateAll();
 		} catch (err) {
 			say('err', (err as Error).message);
 		} finally {
