@@ -2,6 +2,7 @@
 	import BookCard from '$lib/components/site/BookCard.svelte';
 	import { SITE } from '$lib/content/site';
 	import { formatIsbn13 } from '$lib/isbn';
+	import { DEPOSIT_LENDER_LONG } from '$lib/config';
 
 	let { data } = $props();
 	const book = $derived(data.book);
@@ -17,6 +18,13 @@
 		book.dueAt
 			? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(
 					new Date(book.dueAt)
+				)
+			: null
+	);
+	const lentUntil = $derived(
+		book.lentUntil
+			? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(
+					new Date(`${book.lentUntil}T12:00:00`)
 				)
 			: null
 	);
@@ -85,6 +93,12 @@
 						{/if}
 					</span>
 				</p>
+
+				{#if lentUntil}
+					<p class="detail-lent">
+						Prêté à la bibliothèque par la {DEPOSIT_LENDER_LONG} : à retrouver ici jusqu'au {lentUntil}.
+					</p>
+				{/if}
 
 				{#if book.description}
 					<div class="detail-desc">

@@ -4,8 +4,9 @@ import { message, setError, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { books, families, loans } from '$lib/server/db/schema';
-import { DuplicateBookError, updateBook } from '$lib/server/books';
+import { books, deposits, families, loans } from '$lib/server/db/schema';
+import { DuplicateBookError, MissingBarcodeError, updateBook } from '$lib/server/books';
+import { openDeposits } from '$lib/server/deposits';
 import { applyCoverFromForm } from '$lib/server/book-cover-actions';
 import { CoverError } from '$lib/server/cover-store';
 import { bookSchema } from '$lib/schemas';
@@ -33,7 +34,24 @@ export const load: PageServerLoad = async ({ params }) => {
 	const form = await superValidate({ ...book, isbn: book.isbn13 ?? '' }, zod4(bookSchema), {
 		errors: false
 	});
-	return { book, history, form, shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name })) };
+	// The open deposits, plus the book's own if it has closed since.
+	const open = openDeposits(db);
+	const own =
+		book.depositId && !open.some((d) => d.id === book.depositId)
+			? db.select().from(deposits).where(eq(deposits.id, book.depositId)).get()
+			: undefined;
+	return {
+		book,
+		history,
+		form,
+		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name })),
+		deposits: [...open, ...(own ? [own] : [])].map((d) => ({
+			id: d.id,
+			label: d.label,
+			closedAt: d.closedAt
+		})),
+		deposit: book.depositId ? (own ?? open.find((d) => d.id === book.depositId) ?? null) : null
+	};
 };
 
 export const actions: Actions = {
@@ -43,15 +61,16 @@ export const actions: Actions = {
 		const form = await superValidate(fd, zod4(bookSchema));
 		if (!form.valid) return fail(400, { form });
 		try {
-			updateBook(db, book.id, form.data);
+			updateBook(db, book.id, form.data, event.locals.user?.id);
 		} catch (err) {
 			if (err instanceof DuplicateBookError) {
 				return setError(
 					form,
-					'isbn',
+					err.field === 'barcode' ? 'barcode' : 'isbn',
 					`Déjà utilisé par « ${err.existing.title} » (n° ${err.existing.id})`
 				);
 			}
+			if (err instanceof MissingBarcodeError) return setError(form, 'barcode', err.message);
 			if (err instanceof Error) return message(form, err.message, { status: 500 });
 			throw err;
 		}

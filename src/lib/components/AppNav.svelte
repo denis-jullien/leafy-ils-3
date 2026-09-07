@@ -11,7 +11,8 @@
 		Shield,
 		LogOut,
 		Globe,
-		CalendarDays
+		CalendarDays,
+		PackageOpen
 	} from '@lucide/svelte';
 
 	let { user }: { user: { name: string; role?: string | null } } = $props();
@@ -21,6 +22,7 @@
 		{ href: '/circulation', label: 'Prêts & retours', icon: ArrowLeftRight },
 		{ href: '/books', label: 'Livres', icon: BookOpen },
 		{ href: '/families', label: 'Familles', icon: Users },
+		{ href: '/deposits', label: 'Dépôts', icon: PackageOpen },
 		{ href: '/events', label: 'Événements', icon: CalendarDays }
 	];
 

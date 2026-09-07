@@ -960,6 +960,12 @@ html {
 	.detail-stock .stock {
 		font-size: 0.95rem;
 	}
+	.detail-lent {
+		margin: 0.6rem 0 0;
+		font-size: 0.9rem;
+		color: var(--muted);
+		font-style: italic;
+	}
 	.detail-desc {
 		max-width: 62ch;
 		line-height: 1.6;

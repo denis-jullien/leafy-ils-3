@@ -1,7 +1,9 @@
 import { and, asc, eq, isNull, lt, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
-import { books, families, loans, type Book, type Family, type Loan } from './db/schema';
-import { LOAN_MONTHS, MAX_LOANS_PER_FAMILY, MAX_RENEWALS } from '$lib/config';
+import { books, deposits, families, loans, type Book, type Family, type Loan } from './db/schema';
+import { DEPOSIT_LENDER, LOAN_MONTHS, MAX_LOANS_PER_FAMILY, MAX_RENEWALS } from '$lib/config';
+import { depositLoanCap } from './deposits';
+import { fmtDate } from '$lib/format';
 import { normalizeRfidUid, parseBookBarcode, parseFamilyBarcode } from '$lib/barcodes';
 import { parseIsbn } from '$lib/isbn';
 import { BOOK_STATUS } from '$lib/labels';
@@ -16,7 +18,8 @@ export class CirculationError extends Error {
 			| 'ALREADY_ON_LOAN'
 			| 'NOT_ON_LOAN'
 			| 'LOAN_LIMIT'
-			| 'RENEWAL_LIMIT',
+			| 'RENEWAL_LIMIT'
+			| 'DEPOSIT_DUE',
 		message: string
 	) {
 		super(message);
@@ -85,8 +88,15 @@ export function resolveCode(db: Db, raw: string): Resolved {
 		book = db.select().from(books).where(eq(books.id, bookId)).get();
 	}
 	if (!book) {
+		// An ISBN names the library's own copy first; a deposit copy is scanned by its sticker.
 		const isbn = parseIsbn(code);
-		if (isbn) book = db.select().from(books).where(eq(books.isbn13, isbn)).get();
+		if (isbn)
+			book = db
+				.select()
+				.from(books)
+				.where(eq(books.isbn13, isbn))
+				.orderBy(sql`${books.depositId} IS NOT NULL`, sql`${books.status} != 'active'`)
+				.get();
 	}
 	if (!book) book = db.select().from(books).where(eq(books.barcode, code)).get();
 	if (!book) {
@@ -106,6 +116,29 @@ export function dueDate(from = new Date(), months = LOAN_MONTHS) {
 	d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
 	d.setHours(23, 59, 59, 0);
 	return d;
+}
+
+/**
+ * When a loan of this book must end: the usual term, unless the book belongs
+ * to a deposit that goes back to the lender before that. Once the deposit's
+ * return is too close, the book stays on the shelf.
+ */
+export function loanDueFor(
+	db: Db,
+	book: Pick<Book, 'title' | 'depositId'>,
+	now = new Date()
+): Date {
+	const due = dueDate(now);
+	if (book.depositId === null) return due;
+	const dep = db.select().from(deposits).where(eq(deposits.id, book.depositId)).get();
+	if (!dep) return due;
+	const cap = depositLoanCap(dep);
+	if (cap.getTime() <= now.getTime())
+		throw new CirculationError(
+			'DEPOSIT_DUE',
+			`« ${book.title} » retourne à la ${DEPOSIT_LENDER} le ${fmtDate(dep.returnOn)} : il ne se prête plus`
+		);
+	return cap < due ? cap : due;
 }
 
 export interface CheckoutInput {
@@ -162,7 +195,7 @@ export function checkout(db: Db, input: CheckoutInput): Loan[] {
 						bookId,
 						familyId: family.id,
 						checkedOutAt: now,
-						dueAt: dueDate(now),
+						dueAt: loanDueFor(tx, book, now),
 						checkedOutBy: input.userId
 					})
 					.returning()
@@ -216,9 +249,10 @@ export function renewLoan(db: Db, loanId: number, now = new Date()): Loan {
 	if (!loan || loan.returnedAt) throw new CirculationError('NOT_ON_LOAN', 'Ce prêt est terminé');
 	if (loan.renewals >= MAX_RENEWALS)
 		throw new CirculationError('RENEWAL_LIMIT', `Déjà prolongé ${loan.renewals} fois`);
+	const book = db.select().from(books).where(eq(books.id, loan.bookId)).get()!;
 	return db
 		.update(loans)
-		.set({ renewals: loan.renewals + 1, dueAt: dueDate(now) })
+		.set({ renewals: loan.renewals + 1, dueAt: loanDueFor(db, book, now) })
 		.where(eq(loans.id, loanId))
 		.returning()
 		.get();

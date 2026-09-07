@@ -3,18 +3,36 @@
 	import * as Table from '$lib/components/ui/table';
 	import { Button } from '$lib/components/ui/button';
 	import DailyChart from '$lib/components/DailyChart.svelte';
-	import { fmtDate, fmtRelative } from '$lib/format';
-	import { BookDown, BookPlus, BookUp, UserPlus } from '@lucide/svelte';
+	import DepositProgress from '$lib/components/DepositProgress.svelte';
+	import { daysUntil, fmtDate, fmtRelative } from '$lib/format';
+	import { BookDown, BookPlus, BookUp, PackageMinus, PackagePlus, UserPlus } from '@lucide/svelte';
 	import type { ActivityGroup } from '$lib/server/stats';
+	import { DEPOSIT_LENDER } from '$lib/config';
 
 	let { data } = $props();
 	const s = $derived(data.stats);
 	const tiles = $derived([
-		{ label: 'Livres au catalogue', n: s.books, href: '/books', tone: '' },
-		{ label: 'Familles inscrites', n: s.families, href: '/families', tone: '' },
-		{ label: 'En prêt', n: s.onLoan, href: '/circulation', tone: '' },
-		{ label: 'En retard', n: s.overdue, href: '#retards', tone: s.overdue ? 'warn' : 'calm' }
+		{
+			label: 'Nos livres',
+			n: s.books,
+			href: '/books?orig=nous',
+			tone: '',
+			note: s.deposited ? `+ ${s.deposited} en dépôt de la ${DEPOSIT_LENDER}` : ''
+		},
+		{ label: 'Familles inscrites', n: s.families, href: '/families', tone: '', note: '' },
+		{ label: 'En prêt', n: s.onLoan, href: '/circulation', tone: '', note: '' },
+		{
+			label: 'En retard',
+			n: s.overdue,
+			href: '#retards',
+			tone: s.overdue ? 'warn' : 'calm',
+			note: ''
+		}
 	]);
+	const depositTone = (d: { returnOn: string; onLoan: number }) => {
+		const left = daysUntil(d.returnOn);
+		return left < 0 ? 'late' : left <= 30 ? 'soon' : '';
+	};
 	const activeDays = $derived(data.days.length);
 	const totalLoans = $derived(data.days.reduce((n, d) => n + d.loans, 0));
 	const perDay = $derived(activeDays ? (totalLoans / activeDays).toFixed(1) : '–');
@@ -24,7 +42,14 @@
 	const topMax = $derived(Math.max(1, ...data.top.map((t) => t.n)));
 
 	const plural = (n: number, s: string, p = `${s}s`) => `${n} ${n > 1 ? p : s}`;
-	const icons = { loan: BookUp, return: BookDown, book: BookPlus, family: UserPlus };
+	const icons = {
+		loan: BookUp,
+		return: BookDown,
+		book: BookPlus,
+		family: UserPlus,
+		receipt: PackagePlus,
+		handback: PackageMinus
+	};
 	/** What a group says, in two parts: the bold count and the rest. */
 	function headline(g: ActivityGroup): { strong: string; rest: string } {
 		const n = g.books.length;
@@ -42,6 +67,13 @@
 				return g.families.length > 1
 					? { strong: plural(g.families.length, 'famille'), rest: 'inscrites' }
 					: { strong: 'Nouvelle famille', rest: '' };
+			case 'receipt':
+				return { strong: plural(n, 'livre'), rest: n > 1 ? 'reçus dans' : 'reçu dans' };
+			case 'handback':
+				return {
+					strong: plural(n, 'livre'),
+					rest: `${n > 1 ? 'rendus' : 'rendu'} à la ${DEPOSIT_LENDER} ·`
+				};
 		}
 	}
 	const titles = (g: ActivityGroup) => {
@@ -58,17 +90,43 @@
 	</div>
 
 	<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-		{#each tiles as { label, n, href, tone } (label)}
+		{#each tiles as { label, n, href, tone, note } (label)}
 			<a {href}>
-				<Card.Root class="desk-tile desk-tile-{tone}">
+				<Card.Root class="desk-tile h-full desk-tile-{tone}">
 					<Card.Header>
 						<Card.Description>{label}</Card.Description>
 						<Card.Title class="text-3xl">{n}</Card.Title>
+						{#if note}<p class="tile-note">{note}</p>{/if}
 					</Card.Header>
 				</Card.Root>
 			</a>
 		{/each}
 	</div>
+
+	{#if data.deposits.length}
+		<Card.Root class="deposit-strip">
+			<Card.Content class="space-y-4 pt-5">
+				{#each data.deposits as d (d.id)}
+					<div class="deposit deposit-{depositTone(d)}">
+						<div class="deposit-head">
+							<div>
+								<span class="kicker">Dépôt de la {DEPOSIT_LENDER}</span>
+								<a class="deposit-title" href="/deposits/{d.id}">{d.label}</a>
+							</div>
+							<div class="deposit-figures">
+								<span><strong>{d.active}</strong> livres</span>
+								<span class:alert={d.onLoan > 0 && daysUntil(d.returnOn) <= 30}
+									><strong>{d.onLoan}</strong> chez des familles</span
+								>
+								<span><strong>{fmtDate(d.returnOn)}</strong> retour</span>
+							</div>
+						</div>
+						<DepositProgress deposit={d} />
+					</div>
+				{/each}
+			</Card.Content>
+		</Card.Root>
+	{/if}
 
 	<div class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
 		<Card.Root>
@@ -156,6 +214,8 @@
 										{h.rest}
 										{#if g.kind === 'loan' || g.kind === 'return'}
 											<a class="who" href="/families/{g.family?.id}">{g.family?.name}</a>
+										{:else if g.kind === 'receipt' || g.kind === 'handback'}
+											<a class="who" href="/deposits/{g.deposit?.id}">{g.deposit?.label}</a>
 										{:else if g.kind === 'family'}
 											{#each g.families as f, j (f.id)}{#if j > 0},
 												{/if}<a class="who" href="/families/{f.id}">{f.name}</a>{/each}
@@ -211,6 +271,64 @@
 </div>
 
 <style>
+	.tile-note {
+		margin: 0.1rem 0 0;
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--muted-foreground);
+	}
+
+	.deposit {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+	.deposit + .deposit {
+		border-top: 1px solid var(--line);
+		padding-top: 1rem;
+	}
+	.deposit-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 0.5rem 1.5rem;
+	}
+	.kicker {
+		display: block;
+		font-size: 0.7rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--c-secondary);
+	}
+	.deposit-title {
+		font-family: 'Quicksand Variable', 'Quicksand', sans-serif;
+		font-size: 1.25rem;
+		font-weight: 600;
+	}
+	.deposit-title:hover {
+		text-decoration: underline;
+	}
+	.deposit-figures {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 1.4rem;
+		font-size: 0.85rem;
+		color: var(--muted-foreground);
+	}
+	.deposit-figures strong {
+		font-family: 'Quicksand Variable', 'Quicksand', sans-serif;
+		font-size: 1.15rem;
+		color: var(--c-secondary);
+	}
+	.deposit-figures .alert strong {
+		color: var(--destructive);
+	}
+	.deposit-late .kicker {
+		color: var(--destructive);
+	}
+
 	.figures {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -352,6 +470,11 @@
 	.feed-family .dot {
 		background: var(--ink);
 		color: var(--bg);
+	}
+	.feed-receipt .dot,
+	.feed-handback .dot {
+		background: color-mix(in srgb, var(--c-secondary) 18%, #fff);
+		color: var(--c-secondary);
 	}
 	.line {
 		margin: 0.25rem 0 0;

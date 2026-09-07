@@ -1,9 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { CirculationError } from './circulation';
+import { DepositError } from './deposits';
 
 /** Uniform error body for the JSON endpoints: { error, code? }. */
 export function apiError(err: unknown) {
-	if (err instanceof CirculationError)
+	if (err instanceof CirculationError || err instanceof DepositError)
 		return json({ error: err.message, code: err.code }, { status: 409 });
 	console.error(err);
 	return json({ error: 'Erreur inattendue' }, { status: 500 });

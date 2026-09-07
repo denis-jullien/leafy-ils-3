@@ -68,15 +68,39 @@ export const shelves = sqliteTable(
 );
 
 /**
+ * A batch of books lent to the library by the departmental library
+ * (pierresvives), exchanged on fixed dates. Books in a deposit are lent to
+ * families like any other, but must be back before the deposit goes back.
+ */
+export const deposits = sqliteTable(
+	'deposits',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		/** "Échange de mars 2026". */
+		label: text('label').notNull(),
+		/** ISO dates, YYYY-MM-DD. */
+		receivedOn: text('received_on').notNull(),
+		returnOn: text('return_on').notNull(),
+		notes: text('notes'),
+		/** Set once the crate has gone back; the books left were moved to a newer deposit. */
+		closedAt: integer('closed_at', { mode: 'timestamp_ms' }),
+		...timestamps
+	},
+	(t) => [index('deposits_return_idx').on(t.returnOn)]
+);
+
+/**
  * One row per physical book. The library holds one copy per title, so the
  * book *is* the item. The barcode defaults to the ISBN-13; books without an
- * ISBN get an internal barcode (B000123) and a printed label.
+ * ISBN get an internal barcode (B000123) and a printed label. Books from a
+ * deposit carry the lender's own sticker as barcode, and may share an ISBN
+ * with the library's copy: the ISBN is only unique among the library's own.
  */
 export const books = sqliteTable(
 	'books',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		isbn13: text('isbn13').unique(),
+		isbn13: text('isbn13'),
 		barcode: text('barcode').unique(),
 		rfidUid: text('rfid_uid').unique(),
 		title: text('title').notNull(),
@@ -91,12 +115,46 @@ export const books = sqliteTable(
 		/** "Coup de cœur": picked by the volunteers, shown first on the welcome page. */
 		featured: integer('featured', { mode: 'boolean' }).notNull().default(false),
 		notes: text('notes'),
-		status: text('status', { enum: ['active', 'lost', 'withdrawn'] })
+		/** 'returned' is for deposit books only: handed back to the lender. */
+		status: text('status', { enum: ['active', 'lost', 'withdrawn', 'returned'] })
 			.notNull()
 			.default('active'),
+		/** Null for the library's own books. */
+		depositId: integer('deposit_id').references(() => deposits.id),
 		...timestamps
 	},
-	(t) => [index('books_title_idx').on(t.title), index('books_shelf_idx').on(t.shelfId)]
+	(t) => [
+		index('books_title_idx').on(t.title),
+		index('books_shelf_idx').on(t.shelfId),
+		index('books_deposit_idx').on(t.depositId),
+		uniqueIndex('books_isbn_own_uidx')
+			.on(t.isbn13)
+			.where(sql`deposit_id IS NULL`)
+	]
+);
+
+/** Every book received from, or handed back to, the lender: the deposit's movement log. */
+export const depositMoves = sqliteTable(
+	'deposit_moves',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		depositId: integer('deposit_id')
+			.notNull()
+			.references(() => deposits.id),
+		bookId: integer('book_id')
+			.notNull()
+			.references(() => books.id),
+		kind: text('kind', { enum: ['in', 'out'] }).notNull(),
+		at: integer('at', { mode: 'timestamp_ms' })
+			.notNull()
+			.$defaultFn(() => new Date()),
+		/** Volunteer (auth user id). */
+		by: text('by')
+	},
+	(t) => [
+		index('deposit_moves_deposit_idx').on(t.depositId),
+		index('deposit_moves_at_idx').on(t.at)
+	]
 );
 
 /**
@@ -170,6 +228,8 @@ export const events = sqliteTable(
 );
 
 export type Shelf = typeof shelves.$inferSelect;
+export type Deposit = typeof deposits.$inferSelect;
+export type DepositMove = typeof depositMoves.$inferSelect;
 export type Family = typeof families.$inferSelect;
 export type NewFamily = typeof families.$inferInsert;
 export type Member = typeof members.$inferSelect;

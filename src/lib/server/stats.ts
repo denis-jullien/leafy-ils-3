@@ -1,11 +1,12 @@
-import { and, count, desc, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
-import { books, families, loans, user } from './db/schema';
+import { books, depositMoves, deposits, families, loans, user } from './db/schema';
 import { TIMEZONE } from '$lib/config';
 
 /* ---------- Recent activity: what happened at the desk, grouped by batch ---------- */
 
-export type ActivityKind = 'loan' | 'return' | 'book' | 'family';
+/** 'receipt' and 'handback' are deposit books arriving from, or going back to, the lender. */
+export type ActivityKind = 'loan' | 'return' | 'book' | 'family' | 'receipt' | 'handback';
 
 /** One thing that happened: a book lent or returned, a book or a family added. */
 export interface ActivityEvent {
@@ -13,6 +14,8 @@ export interface ActivityEvent {
 	at: Date;
 	/** The family concerned (loans and returns), or the family added. */
 	family?: { id: number; name: string };
+	/** The deposit concerned (receipts and handbacks). */
+	deposit?: { id: number; label: string };
 	/** The book concerned (loans, returns, additions). */
 	book?: { id: number; title: string };
 	/** Volunteer who handled it, when known. */
@@ -24,6 +27,7 @@ export interface ActivityGroup {
 	kind: ActivityKind;
 	at: Date;
 	family?: { id: number; name: string };
+	deposit?: { id: number; label: string };
 	books: { id: number; title: string }[];
 	/** Families added, for the 'family' kind. */
 	families: { id: number; name: string }[];
@@ -42,6 +46,7 @@ export function groupActivity(events: ActivityEvent[]): ActivityGroup[] {
 			last &&
 			last.kind === e.kind &&
 			last.family?.id === e.family?.id &&
+			last.deposit?.id === e.deposit?.id &&
 			last.at.getTime() - e.at.getTime() < BATCH_MS;
 		if (sameBatch) {
 			if (e.book && !last.books.some((b) => b.id === e.book!.id)) last.books.push(e.book);
@@ -52,6 +57,7 @@ export function groupActivity(events: ActivityEvent[]): ActivityGroup[] {
 				kind: e.kind,
 				at: e.at,
 				family: e.family,
+				deposit: e.deposit,
 				books: e.book ? [e.book] : [],
 				families: e.kind === 'family' && e.family ? [e.family] : [],
 				by: e.by
@@ -96,10 +102,28 @@ export function recentActivity(db: Db, limit = 25): ActivityGroup[] {
 		.orderBy(desc(loans.returnedAt))
 		.limit(rows)
 		.all();
+	// Own books added by hand; deposit books arrive through the movement log instead.
 	const newBooks = db
 		.select({ id: books.id, title: books.title, createdAt: books.createdAt })
 		.from(books)
+		.where(isNull(books.depositId))
 		.orderBy(desc(books.createdAt))
+		.limit(rows)
+		.all();
+	const moves = db
+		.select({
+			kind: depositMoves.kind,
+			at: depositMoves.at,
+			by: depositMoves.by,
+			bookId: books.id,
+			title: books.title,
+			depositId: deposits.id,
+			label: deposits.label
+		})
+		.from(depositMoves)
+		.innerJoin(books, eq(books.id, depositMoves.bookId))
+		.innerJoin(deposits, eq(deposits.id, depositMoves.depositId))
+		.orderBy(desc(depositMoves.at))
 		.limit(rows)
 		.all();
 	const newFamilies = db
@@ -112,6 +136,7 @@ export function recentActivity(db: Db, limit = 25): ActivityGroup[] {
 	const ids = new Set<string>();
 	for (const r of loanRows) if (r.checkedOutBy) ids.add(r.checkedOutBy);
 	for (const r of returnRows) if (r.returnedBy) ids.add(r.returnedBy);
+	for (const r of moves) if (r.by) ids.add(r.by);
 	const names = new Map(
 		ids.size
 			? db
@@ -147,6 +172,13 @@ export function recentActivity(db: Db, limit = 25): ActivityGroup[] {
 			kind: 'family' as const,
 			at: f.createdAt,
 			family: { id: f.id, name: f.name }
+		})),
+		...moves.map((m) => ({
+			kind: m.kind === 'in' ? ('receipt' as const) : ('handback' as const),
+			at: m.at,
+			deposit: { id: m.depositId, label: m.label },
+			book: { id: m.bookId, title: m.title },
+			by: m.by ? names.get(m.by) : undefined
 		}))
 	];
 	return groupActivity(events).slice(0, limit);
@@ -200,7 +232,10 @@ export function dailyActivity(db: Db, days = 12, sinceDays = 120): DayActivity[]
 /* ---------- Headline figures ---------- */
 
 export interface HeadlineStats {
+	/** The library's own books in the collection. */
 	books: number;
+	/** Books currently here from the departmental library's deposits. */
+	deposited: number;
 	families: number;
 	onLoan: number;
 	overdue: number;
@@ -215,7 +250,18 @@ export function headlineStats(db: Db, now = new Date()): HeadlineStats {
 	const d90 = new Date(now.getTime() - 90 * 86400_000);
 	const n = (q: { get(): { n: number } | undefined }) => q.get()?.n ?? 0;
 	return {
-		books: n(db.select({ n: count() }).from(books).where(eq(books.status, 'active'))),
+		books: n(
+			db
+				.select({ n: count() })
+				.from(books)
+				.where(and(eq(books.status, 'active'), isNull(books.depositId)))
+		),
+		deposited: n(
+			db
+				.select({ n: count() })
+				.from(books)
+				.where(and(eq(books.status, 'active'), isNotNull(books.depositId)))
+		),
 		families: n(db.select({ n: count() }).from(families).where(eq(families.status, 'active'))),
 		onLoan: n(db.select({ n: count() }).from(loans).where(isNull(loans.returnedAt))),
 		overdue: n(

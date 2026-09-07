@@ -9,7 +9,7 @@
 	import Pager from '$lib/components/Pager.svelte';
 	import QuickField from '$lib/components/QuickField.svelte';
 	import { fmtDate } from '$lib/format';
-	import { BOOK_STATUS, ETAT_OPTIONS } from '$lib/labels';
+	import { BOOK_STATUS, ETAT_OPTIONS, OWN_BOOK_STATUSES } from '$lib/labels';
 
 	let { data, form } = $props();
 	let filling = $state(false);
@@ -24,6 +24,18 @@
 		...data.shelves.map((s) => ({ value: String(s.id), label: s.name }))
 	]);
 	const statusOptions = Object.entries(BOOK_STATUS).map(([value, label]) => ({ value, label }));
+	const ownStatusOptions = statusOptions.filter((o) =>
+		(OWN_BOOK_STATUSES as readonly string[]).includes(o.value)
+	);
+	const origOptions = $derived([
+		{ value: '', label: 'Toutes origines' },
+		{ value: 'nous', label: 'Nos livres' },
+		...(data.deposits.length ? [{ value: 'depot', label: 'Tous les dépôts' }] : []),
+		...data.deposits.map((d) => ({
+			value: String(d.id),
+			label: `Dépôt · ${d.label}${d.closed ? ' (clôturé)' : ''}`
+		}))
+	]);
 	const coeurOptions = [
 		{ value: '', label: 'Tous' },
 		{ value: 'oui', label: 'Coups de cœur' }
@@ -77,6 +89,7 @@
 				</form>
 			{/if}
 			<Button href="/shelves" variant="outline">Rayons</Button>
+			<Button href="/deposits" variant="outline">Dépôts</Button>
 			<Button href="/books/new">Ajouter un livre</Button>
 		</div>
 	</div>
@@ -106,15 +119,24 @@
 							placeholder="Titre ou ISBN"
 							label="Filtrer par titre"
 						/>
-						<label class="head-check"
-							><input
-								type="checkbox"
-								name="couv"
-								value="sans"
-								checked={data.filters.couv === 'sans'}
-								onchange={(e) => e.currentTarget.form?.requestSubmit()}
-							/> sans couverture</label
-						>
+						<span class="flex flex-wrap items-center gap-x-3">
+							<label class="head-check"
+								><input
+									type="checkbox"
+									name="couv"
+									value="sans"
+									checked={data.filters.couv === 'sans'}
+									onchange={(e) => e.currentTarget.form?.requestSubmit()}
+								/> sans couverture</label
+							>
+							<HeadFilter
+								name="orig"
+								kind="select"
+								value={data.filters.orig}
+								options={origOptions}
+								label="Filtrer par origine"
+							/>
+						</span>
 					</Table.Head>
 					<Table.Head
 						><HeadFilter
@@ -163,10 +185,15 @@
 				</Table.Row>
 			</Table.Header>
 			<Table.Body>
-				{#each data.rows as { book, onLoanTo, dueAt } (book.id)}
+				{#each data.rows as { book, onLoanTo, dueAt, deposit } (book.id)}
 					<Table.Row>
 						<Table.Cell class="cell-wrap">
 							<a class="font-medium underline" href="/books/{book.id}">{book.title}</a>
+							{#if deposit}<Badge
+									variant="outline"
+									class="ml-1 align-middle"
+									title="Livre de la médiathèque départementale · {deposit}">dépôt</Badge
+								>{/if}
 							{#if !book.coverUrl}<span
 									class="ml-1 text-xs text-muted-foreground"
 									title="Pas de couverture">◌</span
@@ -204,7 +231,9 @@
 									field="status"
 									kind="select"
 									value={book.status}
-									options={statusOptions}
+									options={book.depositId || book.status === 'returned'
+										? statusOptions
+										: ownStatusOptions}
 									label="État"
 								/>
 							{/if}

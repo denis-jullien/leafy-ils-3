@@ -3,7 +3,8 @@ import { message, setError, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { createBook, DuplicateBookError } from '$lib/server/books';
+import { createBook, DuplicateBookError, MissingBarcodeError } from '$lib/server/books';
+import { getDeposit, openDeposits } from '$lib/server/deposits';
 import { applyCoverFromForm } from '$lib/server/book-cover-actions';
 import { CoverError } from '$lib/server/cover-store';
 import { bookSchema } from '$lib/schemas';
@@ -12,9 +13,19 @@ import { listShelves } from '$lib/server/shelves';
 export const load: PageServerLoad = async ({ url }) => {
 	// /books/new?isbn=978... lets the circulation page hand over an unknown scan.
 	const isbn = url.searchParams.get('isbn') ?? '';
+	// /books/new?deposit=3 is reception mode: every book added belongs to that deposit.
+	const depositId = Number(url.searchParams.get('deposit'));
+	const deposit = depositId ? getDeposit(db, depositId) : undefined;
+	const open = deposit && !deposit.closedAt ? deposit : undefined;
 	return {
-		form: await superValidate({ isbn, status: 'active' }, zod4(bookSchema), { errors: false }),
-		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name }))
+		form: await superValidate(
+			{ isbn, status: 'active', depositId: open?.id ?? null },
+			zod4(bookSchema),
+			{ errors: false }
+		),
+		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name })),
+		deposits: openDeposits(db).map((d) => ({ id: d.id, label: d.label })),
+		deposit: open ?? null
 	};
 };
 
@@ -25,15 +36,16 @@ export const actions: Actions = {
 		if (!form.valid) return fail(400, { form });
 		let book;
 		try {
-			book = createBook(db, form.data);
+			book = createBook(db, form.data, event.locals.user?.id);
 		} catch (err) {
 			if (err instanceof DuplicateBookError) {
 				return setError(
 					form,
-					'isbn',
+					err.field === 'barcode' ? 'barcode' : 'isbn',
 					`Déjà au catalogue : « ${err.existing.title} » (n° ${err.existing.id})`
 				);
 			}
+			if (err instanceof MissingBarcodeError) return setError(form, 'barcode', err.message);
 			if (err instanceof Error) return message(form, err.message, { status: 500 });
 			throw err;
 		}
@@ -45,6 +57,9 @@ export const actions: Actions = {
 		}
 		// Stay here: the volunteer usually has a pile of books to add. The toast links
 		// to the new record for the odd correction.
-		return message(form, { text: `Livre ajouté : ${book.title}`, bookId: book.id });
+		return message(form, {
+			text: `${book.depositId ? 'Reçu dans le dépôt' : 'Livre ajouté'} : ${book.title}`,
+			bookId: book.id
+		});
 	}
 };

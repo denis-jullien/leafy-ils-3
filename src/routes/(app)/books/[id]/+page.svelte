@@ -29,11 +29,16 @@
 			{:else}
 				<Badge variant="outline">{BOOK_STATUS[data.book.status]}</Badge>
 			{/if}
+			{#if data.deposit}
+				<Badge href="/deposits/{data.deposit.id}" variant="outline"
+					>Dépôt · {data.deposit.label} · retour le {fmtDate(data.deposit.returnOn)}</Badge
+				>
+			{/if}
 			<Button href="/livre/{data.book.id}" variant="ghost" size="sm" target="_blank"
 				>Voir sur le site</Button
 			>
 		</div>
-		<BookForm {sf} shelves={data.shelves} action="?/save" />
+		<BookForm {sf} shelves={data.shelves} deposits={data.deposits} action="?/save" />
 	</div>
 
 	<div class="space-y-4">
@@ -47,9 +52,11 @@
 					<Barcode value={data.book.barcode} />
 				{/if}
 				<p class="text-xs text-muted-foreground">
-					{data.book.isbn13
-						? "Scannez le code-barres de l'éditeur."
-						: "Pas d'ISBN : imprimez cette étiquette et collez-la sur le livre."}
+					{data.book.depositId
+						? 'Étiquette collée par la médiathèque départementale : scannez celle-là, pas l’ISBN.'
+						: data.book.isbn13
+							? "Scannez le code-barres de l'éditeur."
+							: "Pas d'ISBN : imprimez cette étiquette et collez-la sur le livre."}
 				</p>
 			</Card.Content>
 		</Card.Root>

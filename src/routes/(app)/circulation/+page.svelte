@@ -137,12 +137,17 @@
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ familyId: family.family.id, bookIds: basket.map((b) => b.id) })
 			});
-			const body = await res.json();
+			const body = (await res.json()) as { loans: { dueAt: string }[]; error?: string };
 			if (!res.ok) throw new Error(body.error ?? 'Prêt impossible');
-			const due = fmtDate(body.loans[0].dueAt);
-			say('ok', `${basket.length} livre(s) prêté(s) à ${family.family.name}, retour le ${due}`);
+			// Deposit books may be due earlier than the rest: say so.
+			const dues = [...new Set(body.loans.map((l) => fmtDate(l.dueAt)))];
+			const due =
+				dues.length === 1
+					? `retour le ${dues[0]}`
+					: `retour le ${dues.join(' ou le ')} selon le livre (dépôt)`;
+			say('ok', `${basket.length} livre(s) prêté(s) à ${family.family.name}, ${due}`);
 			toast.success(`${basket.length} livre(s) prêté(s) à ${family.family.name}`, {
-				description: `À rendre le ${due}`
+				description: due.charAt(0).toUpperCase() + due.slice(1)
 			});
 			basket = [];
 			await refreshFamily();
@@ -155,8 +160,8 @@
 		}
 	}
 
-	/** Letters mean a name; digits, ISBNs and labels mean a code. */
-	const looksLikeName = (text: string) => /\p{L}{2,}/u.test(text) && !parseIsbn(text);
+	/** Letters mean a name; anything with a digit (ISBN, label, a lender's sticker) is a code. */
+	const looksLikeName = (text: string) => /\p{L}{2,}/u.test(text) && !/\d/.test(text);
 
 	async function searchFamilies(q: string): Promise<FamilyHit[]> {
 		const res = await fetch(`/api/families?q=${encodeURIComponent(q)}`);
@@ -385,7 +390,12 @@
 						<ul class="space-y-1 text-sm">
 							{#each family.openLoans as l (l.id)}
 								<li class="flex justify-between gap-2">
-									<span>{l.book.title}</span>
+									<span
+										>{l.book.title}{#if l.book.depositId}<span
+												class="ml-1 text-xs text-muted-foreground"
+												title="Livre de la médiathèque départementale">· dépôt</span
+											>{/if}</span
+									>
 									<span class={isOverdue(l.dueAt) ? 'text-destructive' : 'text-muted-foreground'}
 										>{fmtDate(l.dueAt)}</span
 									>
@@ -411,7 +421,12 @@
 					<ul class="space-y-1 text-sm">
 						{#each basket as b (b.id)}
 							<li class="flex items-center justify-between gap-2">
-								<span>{b.title}</span>
+								<span
+									>{b.title}{#if b.depositId}<span
+											class="ml-1 text-xs text-muted-foreground"
+											title="Livre de la médiathèque départementale">· dépôt</span
+										>{/if}</span
+								>
 								<button
 									class="text-muted-foreground hover:text-foreground"
 									onclick={() => (basket = basket.filter((x) => x.id !== b.id))}

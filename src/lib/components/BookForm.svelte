@@ -7,8 +7,10 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { parseIsbn } from '$lib/isbn';
-	import { BOOK_STATUS } from '$lib/labels';
+	import { BOOK_STATUS, OWN_BOOK_STATUSES } from '$lib/labels';
+	import { DEPOSIT_LENDER } from '$lib/config';
 	import type { BookMetadata } from '$lib/server/metadata';
+	import type { ReceiveResult } from '$lib/server/deposits';
 	import { localModel } from '$lib/embed/local-model.svelte';
 	import { confidenceLabel, proposeShelfLocally } from '$lib/embed/classify';
 	import { toast } from '$lib/toast';
@@ -21,7 +23,9 @@
 		submitLabel = 'Enregistrer',
 		showLookup = true,
 		scanFirst = false,
-		shelves = []
+		shelves = [],
+		deposits = [],
+		onReceived
 	}: {
 		sf: SuperForm<Data>;
 		action?: string;
@@ -30,12 +34,85 @@
 		/** New-book mode: a big, focused ISBN field so the scanner can go straight in. */
 		scanFirst?: boolean;
 		shelves?: { id: number; name: string }[];
+		/** Deposits a book may belong to: the open ones, plus the book's own when editing. */
+		deposits?: { id: number; label: string; closedAt?: Date | null }[];
+		/** Reception mode: a scanned sticker turned out to be a book already on record. */
+		onReceived?: (result: ReceiveResult) => void;
 	} = $props();
-
-	let shelfNote = $state('');
 
 	// svelte-ignore state_referenced_locally
 	const { form, errors, enhance, submitting } = sf;
+
+	const inDeposit = $derived(!!$form.depositId);
+	const statuses = $derived(
+		inDeposit || $form.status === 'returned' ? Object.keys(BOOK_STATUS) : [...OWN_BOOK_STATUSES]
+	) as (keyof typeof BOOK_STATUS)[];
+
+	/* Reception of a deposit: the sticker is scanned first, and may be a known book. */
+	let checkingSticker = $state(false);
+	let stickerNote = $state('');
+	let isbnInput: HTMLInputElement | null = $state(null);
+	async function checkSticker() {
+		const code = ($form.barcode ?? '').trim();
+		if (!code || !$form.depositId) return;
+		checkingSticker = true;
+		stickerNote = '';
+		try {
+			const res = await fetch(`/api/deposits/${$form.depositId}/receive`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ barcode: code })
+			});
+			const r = (await res.json()) as ReceiveResult & { error?: string };
+			if (!res.ok) throw new Error(r.error ?? 'Vérification impossible');
+			switch (r.kind) {
+				case 'unknown':
+					stickerNote = 'Nouvelle étiquette : scannez maintenant l’ISBN au dos du livre.';
+					isbnInput?.focus();
+					return;
+				case 'isbn':
+					// The ISBN barcode was scanned instead of the sticker: keep it, ask for the sticker.
+					$form.isbn = r.isbn;
+					$form.barcode = '';
+					stickerNote = `C'est l'ISBN (${r.isbn}), il est rempli : scannez l'étiquette de la ${DEPOSIT_LENDER}.`;
+					void lookup();
+					return;
+				case 'already':
+					toast.info(`Déjà reçu : « ${r.book.title} »`);
+					break;
+				case 'reactivated':
+					toast.success(`De retour dans le dépôt : « ${r.book.title} »`, {
+						description: 'Fiche retrouvée, rien à ressaisir.'
+					});
+					break;
+				case 'transferred':
+					toast.success(`Gardé : « ${r.book.title} »`, {
+						description: `Passé du dépôt ${r.from.label} à celui-ci.`
+					});
+					break;
+				case 'own':
+					toast.error(`« ${r.book.title} » est un livre de la bibliothèque`, {
+						description: "Il ne fait pas partie d'un dépôt."
+					});
+					$form.barcode = '';
+					return;
+			}
+			onReceived?.(r);
+		} catch (e) {
+			stickerNote = `Vérification impossible : ${(e as Error).message}`;
+			toast.error((e as Error).message);
+		} finally {
+			checkingSticker = false;
+		}
+	}
+	function onStickerKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			void checkSticker();
+		}
+	}
+
+	let shelfNote = $state('');
 
 	// Cover picked on this device: previewed locally, shrunk before upload.
 	let coverFile: File | null = $state(null);
@@ -205,6 +282,48 @@
 	class="grid grid-cols-6 gap-x-3 gap-y-4 md:grid-cols-12"
 	data-no-wedge
 >
+	{#if deposits.length}
+		<div class="col-span-6 space-y-1 md:col-span-4">
+			<Label for="depositId">Origine</Label>
+			<select
+				id="depositId"
+				name="depositId"
+				bind:value={$form.depositId}
+				class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+			>
+				<option value={null}>Nos livres</option>
+				{#each deposits as d (d.id)}
+					<option value={d.id}>Dépôt · {d.label}{d.closedAt ? ' (clôturé)' : ''}</option>
+				{/each}
+			</select>
+		</div>
+		{#if inDeposit}
+			<div class="col-span-6 space-y-1 md:col-span-8">
+				<Label for="barcode">Étiquette de la {DEPOSIT_LENDER}</Label>
+				<div class="flex flex-wrap gap-2">
+					<Input
+						id="barcode"
+						name="barcode"
+						bind:value={$form.barcode}
+						placeholder="Scannez l'étiquette collée par la médiathèque"
+						onkeydown={onStickerKeydown}
+						onblur={() => scanFirst && void checkSticker()}
+						autofocus={scanFirst}
+						class={scanFirst ? 'desk-scan min-w-0 flex-1 font-mono' : 'max-w-xs font-mono'}
+					/>
+					{#if checkingSticker}<span class="self-center text-sm text-muted-foreground"
+							>Vérification…</span
+						>{/if}
+				</div>
+				{#if $errors.barcode}<p class="text-sm text-destructive">{$errors.barcode}</p>{/if}
+				{#if stickerNote}<p class="text-sm text-muted-foreground">{stickerNote}</p>{/if}
+			</div>
+		{/if}
+	{:else if $form.depositId}
+		<input type="hidden" name="depositId" value={$form.depositId} />
+		<input type="hidden" name="barcode" value={$form.barcode ?? ''} />
+	{/if}
+
 	<div class="col-span-6 space-y-1 md:col-span-12">
 		<Label for="isbn">ISBN</Label>
 		<div class="flex flex-wrap gap-2">
@@ -212,11 +331,12 @@
 				id="isbn"
 				name="isbn"
 				bind:value={$form.isbn}
+				bind:ref={isbnInput}
 				placeholder={scanFirst
 					? "Scannez le code-barres du livre, ou tapez l'ISBN"
 					: "Scannez ou tapez l'ISBN"}
 				onkeydown={onIsbnKeydown}
-				autofocus={scanFirst}
+				autofocus={scanFirst && !inDeposit}
 				class={scanFirst ? 'desk-scan min-w-0 flex-1 font-mono' : 'max-w-xs font-mono'}
 			/>
 			{#if showLookup}
@@ -317,8 +437,8 @@
 			bind:value={$form.status}
 			class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
 		>
-			{#each Object.entries(BOOK_STATUS) as [value, label] (value)}
-				<option {value}>{label}</option>
+			{#each statuses as value (value)}
+				<option {value}>{BOOK_STATUS[value]}</option>
 			{/each}
 		</select>
 	</div>

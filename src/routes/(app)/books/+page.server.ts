@@ -2,7 +2,8 @@ import { and, asc, count, desc, eq, isNotNull, isNull, like, or, sql, type SQL }
 import { squash } from '$lib/search';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { books, loans, shelves } from '$lib/server/db/schema';
+import { books, deposits, loans, shelves } from '$lib/server/db/schema';
+import { listDeposits } from '$lib/server/deposits';
 import { parseIsbn } from '$lib/isbn';
 import { countExternalCovers, fillMissingCovers, importExternalCovers } from '$lib/server/covers';
 import { listShelves } from '$lib/server/shelves';
@@ -51,7 +52,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		shelf: text(url, 'r'), // a shelf id, or 'none'
 		coeur: text(url, 'coeur') === 'oui' ? 'oui' : '',
 		etat: ((v) => (ETAT_OPTIONS.some((o) => o.value === v) ? (v as Etat) : ''))(text(url, 'etat')),
-		couv: text(url, 'couv') === 'sans' ? 'sans' : ''
+		couv: text(url, 'couv') === 'sans' ? 'sans' : '',
+		/** 'nous' (own books), 'depot' (any deposit) or a deposit id. */
+		orig: ((v) => (v === 'nous' || v === 'depot' || /^\d+$/.test(v) ? v : ''))(text(url, 'orig'))
 	};
 
 	const filters: SQL[] = [];
@@ -75,14 +78,24 @@ export const load: PageServerLoad = async ({ url }) => {
 	else if (f.etat === 'pret') filters.push(isNotNull(loans.id));
 	else if (f.etat) filters.push(eq(books.status, f.etat));
 	if (f.couv) filters.push(or(isNull(books.coverUrl), eq(books.coverUrl, ''))!);
+	if (f.orig === 'nous') filters.push(isNull(books.depositId));
+	else if (f.orig === 'depot') filters.push(isNotNull(books.depositId));
+	else if (f.orig) filters.push(eq(books.depositId, Number(f.orig)));
 	const where = filters.length ? and(...filters) : undefined;
 
 	const base = () =>
 		db
-			.select({ book: books, shelf: shelves.name, onLoanTo: loans.familyId, dueAt: loans.dueAt })
+			.select({
+				book: books,
+				shelf: shelves.name,
+				onLoanTo: loans.familyId,
+				dueAt: loans.dueAt,
+				deposit: deposits.label
+			})
 			.from(books)
 			.leftJoin(loans, onLoan)
 			.leftJoin(shelves, eq(shelves.id, books.shelfId))
+			.leftJoin(deposits, eq(deposits.id, books.depositId))
 			.where(where);
 
 	const total = db.select({ n: count() }).from(base().as('b')).get()?.n ?? 0;
@@ -107,7 +120,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		total,
 		missingCovers,
 		externalCovers: countExternalCovers(db),
-		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name }))
+		shelves: listShelves(db).map((s) => ({ id: s.id, name: s.name })),
+		deposits: listDeposits(db).map((d) => ({ id: d.id, label: d.label, closed: !!d.closedAt }))
 	};
 };
 

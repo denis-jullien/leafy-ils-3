@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import { FUZZY_THRESHOLD, fuzzyScore, squash, squashedWords } from '$lib/search';
 import type { Db } from './db/client';
-import { books, loans, shelves } from './db/schema';
+import { books, deposits, loans, shelves } from './db/schema';
 import { parseIsbn } from '$lib/isbn';
 
 /** What the public may see about a book: no notes, no barcodes, no RFID. */
@@ -26,6 +26,8 @@ export interface PublicBookDetail extends PublicBook {
 	/** When the book is out: the date it is expected back. */
 	dueAt: Date | null;
 	isbn13: string | null;
+	/** Set for books lent by the departmental library: the ISO day they leave the shelves. */
+	lentUntil: string | null;
 }
 
 const NEW_FOR_DAYS = 30;
@@ -162,16 +164,26 @@ export function getPublicBook(db: Db, id: number): PublicBookDetail | null {
 			description: books.description,
 			pageCount: books.pageCount,
 			language: books.language,
-			isbn13: books.isbn13
+			isbn13: books.isbn13,
+			lentUntil: deposits.returnOn
 		})
 		.from(books)
 		.leftJoin(loans, onLoanJoin)
 		.leftJoin(shelves, eq(shelves.id, books.shelfId))
+		.leftJoin(deposits, eq(deposits.id, books.depositId))
 		.where(and(eq(books.id, id), eq(books.status, 'active')))
 		.get();
 	if (!row) return null;
-	const { description, pageCount, language, isbn13, ...rest } = row;
-	return { ...toPublic(rest), description, pageCount, language, isbn13, dueAt: row.dueAt };
+	const { description, pageCount, language, isbn13, lentUntil, ...rest } = row;
+	return {
+		...toPublic(rest),
+		description,
+		pageCount,
+		language,
+		isbn13,
+		lentUntil,
+		dueAt: row.dueAt
+	};
 }
 
 /** The welcome rail: the volunteers' picks and nothing else, newest pick first. */

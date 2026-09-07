@@ -76,6 +76,35 @@ hours with today highlighted, address, contact and how to join. It needs no logi
 
 Loan policy lives in `src/lib/config.ts` (two months, no limit per family, one renewal).
 
+## Deposits from the departmental library
+
+Every six months the Médiathèque départementale (pierresvives) lends a batch of books,
+the "dépôt", exchanged on a fixed date. Those books are a separate inventory with their
+own movements, handled from **Dépôts** on the desk:
+
+- A deposit is one batch: label, date received, return date (six months by default) and
+  notes. A book with a deposit belongs to the lender; one without is the library's own.
+  Several deposits can be open at once.
+- **Reception** is scan by scan, from `/books/new?deposit=<id>`: the volunteer scans the
+  lender's sticker, then the ISBN. The sticker becomes the book's barcode (the ISBN is no
+  longer unique across deposit books, only among the library's own copies, so a title
+  the library owns can also arrive in a deposit). A sticker seen in an earlier deposit is
+  recognised: the book comes back on its own record, and a book still in an older open
+  deposit moves to the new one, which is how books are kept from one exchange to the next.
+  Their own list, whatever its format, can be pasted on the deposit page and is compared
+  line by line with what was actually scanned.
+- **Loans** to families work as usual, capped so the book is due back at least
+  `DEPOSIT_MARGIN_DAYS` (14) before the deposit's return date; once that is too close, the
+  book stays on the shelf. The deposit page lists what is still out, with the family's phone.
+- **Return**: on exchange day, the deposit page's "remplir la caisse" mode marks every
+  scanned book as handed back ("rendu au département"); a book still out with a family is
+  refused. Closing the deposit moves whatever is left into another open deposit.
+- Every arrival and hand-back is logged in `deposit_moves` and shows in the dashboard
+  feed; the dashboard also shows each open deposit with its countdown.
+- At the desk, an ISBN always names the library's own copy; deposit books are scanned by
+  their sticker. The public book page says the book is lent by the departmental library
+  and until when.
+
 ## Search
 
 The public search box and the desk filters match loosely: both sides are lowercased,

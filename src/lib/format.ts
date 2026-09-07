@@ -41,5 +41,12 @@ export function fmtRelative(d: Date | number | string, now = Date.now()) {
 	return `${shortDayFmt.format(t)} à ${time}`;
 }
 
+/** Whole days from today (library time) to an ISO day; negative once it is past. */
+export function daysUntil(iso: string, now = Date.now()): number {
+	return Math.round(
+		(Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${isoDay.format(now)}T00:00:00Z`)) / 86400_000
+	);
+}
+
 /** "mer. 3 sept." from an ISO day (YYYY-MM-DD). */
 export const fmtDay = (iso: string) => shortDayFmt.format(new Date(`${iso}T12:00:00`));

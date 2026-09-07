@@ -49,7 +49,11 @@ export const bookSchema = z.object({
 		.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean())
 		.default(false),
 	notes: optionalText,
-	status: z.enum(['active', 'lost', 'withdrawn']).default('active')
+	status: z.enum(['active', 'lost', 'withdrawn', 'returned']).default('active'),
+	/** Set for books lent by the departmental library; null for the library's own. */
+	depositId: optionalInt,
+	/** The lender's sticker, required on deposit books; own books derive their barcode. */
+	barcode: optionalText
 });
 
 export const familySchema = z.object({
@@ -84,7 +88,7 @@ export const bookQuickSchema = z
 			z.number().int().nullable()
 		),
 		featured: z.boolean({ error: 'Valeur invalide' }),
-		status: z.enum(['active', 'lost', 'withdrawn'], { error: 'État inconnu' })
+		status: z.enum(['active', 'lost', 'withdrawn', 'returned'], { error: 'État inconnu' })
 	})
 	.partial()
 	.strict();
@@ -97,6 +101,20 @@ export const familyQuickSchema = z
 	})
 	.partial()
 	.strict();
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide');
+
+export const depositSchema = z
+	.object({
+		label: z.string().trim().min(1, 'Le nom est obligatoire'),
+		receivedOn: isoDate,
+		returnOn: isoDate,
+		notes: optionalText
+	})
+	.refine((d) => d.returnOn > d.receivedOn, {
+		message: 'La date de retour doit suivre la date de réception',
+		path: ['returnOn']
+	});
 
 export const shelfSchema = z.object({
 	name: z.string().trim().min(1, 'Le nom est obligatoire'),
