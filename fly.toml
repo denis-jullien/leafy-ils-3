@@ -1,4 +1,4 @@
-# fly launch --no-deploy --copy-config   then   fly volumes create data --size 1
+# One machine with a persistent SQLite volume. Deploy with: fly deploy --ha=false
 app = "leafy-ils"
 primary_region = "cdg"
 
@@ -13,6 +13,8 @@ primary_region = "cdg"
 [[mounts]]
   source = "data"
   destination = "/data"
+  snapshot_retention = 7
+  scheduled_snapshots = true
 
 [http_service]
   internal_port = 3000

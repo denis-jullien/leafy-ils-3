@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import type { Db } from './db/client';
 import { books, covers } from './db/schema';
 import { takeCachedCover } from './metadata';
+import { downloadCover, MAX_COVER_BYTES } from './cover-download';
 
 /** Every stored cover fits in this box. Big enough for the public page, small to keep. */
 export const COVER_MAX = { width: 600, height: 900 };
@@ -16,7 +17,7 @@ const COVER_FORMAT: 'webp' | 'avif' = 'webp';
 const QUALITY = { webp: 80, avif: 50 }[COVER_FORMAT];
 const MIN_SIDE = 100;
 /** Refuse absurd uploads before decoding them. */
-export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = MAX_COVER_BYTES;
 
 export class CoverError extends Error {}
 
@@ -121,19 +122,10 @@ const UA = 'leafy-ils/0.1 (village library catalogue)';
 export async function importCoverFromUrl(db: Db, bookId: number, url: string, source = 'url') {
 	let bytes = takeCachedCover(url);
 	if (!bytes) {
-		const ctrl = new AbortController();
-		const timer = setTimeout(() => ctrl.abort(), 15000);
 		try {
-			const res = await fetch(url, {
-				signal: ctrl.signal,
-				headers: { 'User-Agent': UA },
-				redirect: 'follow'
-			});
-			if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/'))
-				throw new CoverError(`Image indisponible (${res.status}).`);
-			bytes = new Uint8Array(await res.arrayBuffer());
-		} finally {
-			clearTimeout(timer);
+			bytes = await downloadCover(url, { userAgent: UA });
+		} catch (err) {
+			throw new CoverError((err as Error).message);
 		}
 	}
 	return storeCover(db, bookId, bytes, source);

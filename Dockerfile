@@ -5,7 +5,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build && npm prune --omit=dev
+RUN DATABASE_URL=/tmp/build.db \
+    ORIGIN=http://localhost:3000 \
+    BETTER_AUTH_SECRET=build-only-placeholder-secret-not-for-runtime \
+    npm run build && npm prune --omit=dev
 
 # ---- runtime ---------------------------------------------------------------
 FROM node:22-bookworm-slim
@@ -25,6 +28,7 @@ COPY --from=build /app/package.json ./
 COPY drizzle ./drizzle
 COPY litestream.yml /etc/litestream.yml
 COPY scripts/start.sh ./scripts/start.sh
+COPY scripts/database-recovery.mjs ./scripts/database-recovery.mjs
 RUN chmod +x ./scripts/start.sh && mkdir -p /data
 
 EXPOSE 3000

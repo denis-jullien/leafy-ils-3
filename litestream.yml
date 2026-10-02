@@ -6,5 +6,7 @@ dbs:
     replicas:
       - url: ${LITESTREAM_REPLICA_URL}
         endpoint: ${LITESTREAM_ENDPOINT}
+        region: ${LITESTREAM_REGION}
         sync-interval: 10s
+        snapshot-interval: 24h
         retention: 720h

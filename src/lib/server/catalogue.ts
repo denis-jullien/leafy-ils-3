@@ -110,9 +110,9 @@ function selectPublic(db: Db) {
  * one shelf. Empty query + shelf lists that shelf. When nothing matches, the
  * closest titles and authors within one or two typos are offered instead.
  */
-export function searchCatalogue(
+function catalogueMatches(
 	db: Db,
-	{ q = '', shelfId = null, limit = 60, fuzzy = true }: CatalogueQuery
+	{ q = '', shelfId = null, fuzzy = true }: CatalogueQuery
 ): PublicBook[] {
 	const term = q.trim();
 	const filters: SQL[] = [eq(books.status, 'active')];
@@ -121,8 +121,7 @@ export function searchCatalogue(
 	if (!term) {
 		return selectPublic(db)
 			.where(and(...filters))
-			.orderBy(asc(books.title))
-			.limit(limit)
+			.orderBy(asc(books.title), asc(books.id))
 			.all()
 			.map(toPublic);
 	}
@@ -131,14 +130,14 @@ export function searchCatalogue(
 	if (isbn) {
 		return selectPublic(db)
 			.where(and(...filters, eq(books.isbn13, isbn)))
+			.orderBy(asc(books.id))
 			.all()
 			.map(toPublic);
 	}
 
 	const hits = selectPublic(db)
 		.where(and(...filters, looseMatch(term)))
-		.orderBy(asc(books.title))
-		.limit(limit)
+		.orderBy(asc(books.title), asc(books.id))
 		.all()
 		.map(toPublic);
 	if (hits.length || !fuzzy || squash(term).length < 3) {
@@ -152,9 +151,39 @@ export function searchCatalogue(
 		.all()
 		.map((r) => ({ book: toPublic(r), score: fuzzyScore(term, `${r.title} ${r.authors ?? ''}`) }))
 		.filter((x) => x.score >= FUZZY_THRESHOLD)
-		.sort((a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title, 'fr'))
-		.slice(0, limit)
+		.sort(
+			(a, b) =>
+				b.score - a.score || a.book.title.localeCompare(b.book.title, 'fr') || a.book.id - b.book.id
+		)
 		.map((x) => x.book);
+}
+
+/** Rank the full matching set before limiting rails or selecting a catalogue page. */
+export function searchCatalogue(db: Db, query: CatalogueQuery): PublicBook[] {
+	return catalogueMatches(db, query).slice(0, query.limit ?? 60);
+}
+
+export function cataloguePage(db: Db, query: CatalogueQuery & { page?: number }, pageSize = 120) {
+	const matches = catalogueMatches(db, query);
+	const total = matches.length;
+	const pages = Math.max(1, Math.ceil(total / pageSize));
+	const requested = Number.isSafeInteger(query.page) && query.page! > 0 ? query.page! : 1;
+	const page = Math.min(requested, pages);
+	return {
+		books: matches.slice((page - 1) * pageSize, page * pageSize),
+		total,
+		page,
+		pages,
+		pageSize
+	};
+}
+
+export function cataloguePageHref(url: URL, page: number) {
+	const params = new URLSearchParams(url.searchParams);
+	if (page === 1) params.delete('page');
+	else params.set('page', String(page));
+	const query = params.toString();
+	return `/catalogue${query ? `?${query}` : ''}#resultats`;
 }
 
 export function getPublicBook(db: Db, id: number): PublicBookDetail | null {

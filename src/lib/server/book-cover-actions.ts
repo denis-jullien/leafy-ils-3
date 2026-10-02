@@ -1,6 +1,7 @@
 import type { Db } from './db/client';
 import {
 	CoverError,
+	MAX_UPLOAD_BYTES,
 	deleteCover,
 	importCoverFromUrl,
 	isExternalCover,
@@ -22,6 +23,7 @@ export async function applyCoverFromForm(
 	const remove = fd.get('removeCover') === 'on';
 	try {
 		if (file instanceof File && file.size > 0) {
+			if (file.size > MAX_UPLOAD_BYTES) throw new CoverError('Image trop lourde (15 Mo maximum).');
 			const r = await storeCover(db, bookId, new Uint8Array(await file.arrayBuffer()), 'upload');
 			return `Couverture enregistrée (${r.width}×${r.height}, ${Math.round(r.bytes / 1024)} Ko)`;
 		}

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { languageFromIsbn } from '$lib/isbn';
 import { looksBlank } from './cover-check';
+import { downloadCover } from './cover-download';
 import { imageSize } from './image-size';
 import { invLabel, parseInventaire, RELATIVES, type InvEntity } from './inventaire';
 import { parseUnimarc, unimarcToBook } from './unimarc';
@@ -274,9 +275,7 @@ export async function verifyCover(
 	signal: AbortSignal
 ): Promise<{ width: number; height: number } | null> {
 	try {
-		const res = await get(url, signal);
-		if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) return null;
-		const buf = new Uint8Array(await res.arrayBuffer());
+		const buf = await downloadCover(url, { signal, userAgent: UA });
 		const size = imageSize(buf);
 		if (!size) return null;
 		if (PLACEHOLDER_SIZES.has(`${size.width}x${size.height}`)) return null;

@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import { createDb } from './db/client';
 import { runMigrations } from './db/migrate';
 import { books } from './db/schema';
+import { applyCoverFromForm } from './book-cover-actions';
 import {
 	CoverError,
 	COVER_MAX,
@@ -44,5 +45,21 @@ describe('cover store', () => {
 		deleteCover(db, book.id);
 		expect(getCover(db, book.id)).toBeUndefined();
 		expect(db.select().from(books).get()?.coverUrl).toBeNull();
+	});
+
+	it('accepts a local image upload without fetching an external URL', async () => {
+		const db = createDb(':memory:');
+		runMigrations(db);
+		const book = db.insert(books).values({ title: 'Local upload' }).returning().get();
+		const fd = new FormData();
+		fd.set(
+			'coverFile',
+			new File([new Uint8Array(await image(300, 400, 'png'))], 'phone.png', { type: 'image/png' })
+		);
+		await expect(
+			applyCoverFromForm(db, book.id, fd, 'http://127.0.0.1/blocked')
+		).resolves.toContain('enregistrée');
+		expect(getCover(db, book.id)?.source).toBe('upload');
+		expect(getCover(db, book.id)?.mime).toBe('image/webp');
 	});
 });

@@ -5,7 +5,7 @@
 	let { data } = $props();
 
 	const n = $derived(data.books.length);
-	const plural = $derived(n > 1 ? 's' : '');
+	const plural = $derived(data.total > 1 ? 's' : '');
 </script>
 
 <svelte:head>
@@ -50,11 +50,8 @@
 				</h2>
 			</div>
 			<p class="section-note">
-				{#if data.truncated}
-					Les {data.pageSize} premiers ouvrages — affinez la recherche
-				{:else}
-					{n} ouvrage{plural} affiché{plural}
-				{/if}
+				{data.total} ouvrage{plural}
+				{#if data.pages > 1}— page {data.page} sur {data.pages}{/if}
 			</p>
 		</div>
 
@@ -67,6 +64,27 @@
 			<div class="book-grid">
 				{#each data.books as book (book.id)}<BookCard {book} />{/each}
 			</div>
+			{#if data.pages > 1}
+				<nav class="catalogue-pagination" aria-label="Pages du catalogue">
+					{#if data.previousHref}<a class="btn-ghost" href={data.previousHref} rel="prev"
+							>← Précédente</a
+						>{/if}
+					<span aria-current="page">Page {data.page} sur {data.pages}</span>
+					{#if data.nextHref}<a class="btn-ghost" href={data.nextHref} rel="next">Suivante →</a
+						>{/if}
+				</nav>
+			{/if}
 		{/if}
 	</div>
 </section>
+
+<style>
+	.catalogue-pagination {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		margin-top: 2rem;
+	}
+</style>

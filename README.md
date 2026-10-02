@@ -118,6 +118,11 @@ shows the near misses ("grey" still finds "Gray"), which is instant on a village
 catalogue. Full-text or semantic search were considered and set aside: they work on
 words or on meaning, not on the letters people actually type.
 
+The public catalogue shows 120 books per page, with the total count and previous/next
+links that keep the search and shelf filter. Ranking applies to all matches before
+pagination, including typo suggestions, so a relevant title cannot be hidden by an
+earlier alphabetical cutoff.
+
 ## ISBN lookup and covers
 
 `src/lib/server/metadata.ts` asks the providers in `ISBN_PROVIDERS` order and merges their
@@ -150,6 +155,11 @@ ETag. The book form lets a volunteer upload or replace a cover (the browser shri
 photos first) or remove it; an image address found online is brought in at save time. The
 books list has **Rapatrier les couvertures externes** for books that still point elsewhere.
 Litestream replicates the database file, so covers are in the backups.
+
+Local uploads remain supported (15 MB maximum). Remote images must use public HTTP(S)
+addresses: DNS answers and each redirect are checked, and the connection uses only the
+validated addresses. Downloads stop at 15 MB or after 15 seconds; non-image and compressed
+HTTP responses are rejected before decoding.
 
 ## Rayons and automatic shelving
 
@@ -189,14 +199,16 @@ shelf, category, coup de cœur and state for books, phone and membership for fam
 
 ```sh
 fly launch --no-deploy --copy-config     # uses fly.toml, pick your app name and region
-fly volumes create data --size 3 --region cdg   # covers live in the database too
+fly volumes create data --size 3 --region cdg --snapshot-retention 7
 fly secrets set BETTER_AUTH_SECRET="$(openssl rand -base64 32)" ORIGIN="https://<app>.fly.dev"
-# optional, strongly recommended: Litestream to Cloudflare R2 or Backblaze B2
-fly secrets set LITESTREAM_REPLICA_URL="s3://<bucket>/library" \
-  LITESTREAM_ENDPOINT="https://<account>.r2.cloudflarestorage.com" \
-  LITESTREAM_ACCESS_KEY_ID=... LITESTREAM_SECRET_ACCESS_KEY=...
-fly deploy
+# Only for a deliberate first deployment with a fresh database and no replica yet:
+fly secrets set DATABASE_INITIALIZE=1 --stage
+fly deploy --ha=false                  # SQLite uses one machine and one volume
+fly secrets unset DATABASE_INITIALIZE  # missing databases must trigger recovery later
 ```
+
+Enable continuous backups after first setup. See [database recovery](docs/database-recovery.md)
+for Tigris configuration, restore verification, and recovery from Fly snapshots.
 
 Set `ORIGIN` in `fly.toml` (or as a secret) to the real public URL, or sign-in cookies
 will be refused. The machine stops when idle and starts on the first request.
